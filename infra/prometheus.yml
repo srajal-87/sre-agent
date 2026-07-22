@@ -1,0 +1,16 @@
+# Prometheus configuration — SRE Agent
+# Scrapes metrics from all victim services
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: "victim-services"
+    static_configs:
+      - targets:
+          - "api-gateway:8000"
+          - "data-service:8000"
+          - "downstream-dep:8000"
+        labels:
+          environment: "dev"

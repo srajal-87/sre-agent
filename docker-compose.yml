@@ -1,0 +1,78 @@
+# docker-compose.yml — SRE Agent: Local Development
+# All services defined here; Dockerfiles will be added per-phase.
+
+services:
+  # ── Victim System (Phase 1) ──────────────────────────────────
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8001:8000"
+    depends_on:
+      - data-service
+    environment:
+      - SERVICE_NAME=api-gateway
+      - DATA_SERVICE_URL=http://data-service:8000
+    networks:
+      - sre-net
+
+  data-service:
+    build: ./services/data-service
+    ports:
+      - "8002:8000"
+    depends_on:
+      - downstream-dep
+    environment:
+      - SERVICE_NAME=data-service
+      - DOWNSTREAM_URL=http://downstream-dep:8000
+    networks:
+      - sre-net
+
+  downstream-dep:
+    build: ./services/downstream-dep
+    ports:
+      - "8003:8000"
+    environment:
+      - SERVICE_NAME=downstream-dep
+    networks:
+      - sre-net
+
+  # ── Telemetry (Phase 1) ──────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - sre-net
+
+  # ── Agent API (Phase 2–3) ────────────────────────────────────
+  agent-api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_NAME=agent-api
+      # Model API key, Supabase URL, LangSmith key — set via .env file
+      - DATABASE_URL=${DATABASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+    depends_on:
+      - api-gateway
+      - prometheus
+    networks:
+      - sre-net
+
+  # ── Demo UI (Phase 7) ───────────────────────────────────────
+  # ui:
+  #   build: ./ui
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - agent-api
+  #   networks:
+  #     - sre-net
+
+networks:
+  sre-net:
+    driver: bridge

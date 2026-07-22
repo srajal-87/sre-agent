@@ -1,0 +1,33 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node / React
+ui/node_modules/
+ui/build/
+ui/dist/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Eval outputs (keep scenario definitions, ignore run outputs)
+eval/results/
