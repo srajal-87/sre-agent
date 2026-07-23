@@ -37,10 +37,8 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 
 ## Current Phase
 
-**Phase 0 — Foundation (Days 1–2)**
-- Status: Complete
-- Repo structure, docs, docker-compose skeleton created
-- Next: Phase 1 — Victim System + Fault Injector + Telemetry
+**Phase 0 — Foundation (Days 1–2):** Complete
+**Next:** Phase 1 — Victim System + Fault Injector + Telemetry
 
 ## Key Conventions
 
@@ -96,8 +94,70 @@ python eval/run_eval.py
 
 - None yet (Phase 0)
 
-## Session Notes
+---
 
-- When starting a new session, read this file first, then check `docs/decisions.md` for recent context.
-- Prefer starting a fresh Claude Code session for each new phase.
-- Within a phase, continue the same session when possible.
+## Ways of Working (MANDATORY for all implementation tasks)
+
+These rules govern every session where production code is written or modified. They override Claude's default behavior.
+
+### Core Rules
+
+- Work in **very small steps** — one logical change at a time. Never bundle multiple concerns.
+- **Do not generate a full solution in one go.** Present one step, wait, repeat.
+- After every step: stop, explain what was done, suggest a commit message, and ask for confirmation before proceeding.
+- Prefer **simple, readable, maintainable** code over clever code. Optimise for the next reader.
+- If any part of the spec is unclear, **ask instead of assuming** — never guess intent.
+
+### Output Format (one step at a time, strictly)
+
+Present each step using this exact structure:
+
+```
+### Step N — <short description>
+
+**What this step does:**
+<one sentence>
+
+**Test (failing):**
+<file path>
+<test code — must fail before implementation exists>
+
+Waiting for your approval. Reply ✓ to implement, or describe changes.
+```
+
+After approval, continue with:
+
+```
+**Implementation (minimal):**
+<file path>
+<only the code needed to make the test pass — nothing more>
+
+**Refactor (if applicable):**
+<only if there is a clear improvement; skip if not needed>
+
+**Does it pass?** `pnpm --filter <package> run test`
+
+**Suggested commit:** `<type>(<scope>): <short description>`
+
+Ready for Step N+1 — [brief description of next step]. Proceed?
+```
+
+Commit type order per cycle: `test:` → `feat:` → `refactor:`
+
+### When Planning
+
+- Present multiple options with pros/cons when they exist.
+- Call out edge cases and how we should handle them.
+- Ask clarifying questions rather than making assumptions.
+- Question design decisions that seem suboptimal.
+- Share opinions on best practices, but acknowledge when something is opinion vs fact.
+
+---
+
+## Session Workflow
+
+- **CLAUDE.md is stable project context.** Do not edit it per-session. It changes only when the project's architecture, conventions, or tech stack change.
+- **HANDOFF.md carries session-to-session state.** At the end of every session, update `HANDOFF.md` with: what was done, current state/blockers, and what the next session should pick up. At the start of every session, read this file first alongside CLAUDE.md.
+- **docs/decisions.md** is the running decisions log (3–5 sentences per session, capturing decisions, trade-offs, and surprises). This is separate from HANDOFF.md — decisions.md is permanent project history; HANDOFF.md is ephemeral session state.
+- Prefer starting a **fresh Claude Code session for each new phase**. Within a phase, continue the same session when possible.
+- If a session gets confused or stuck, start fresh — update HANDOFF.md first so context isn't lost.
