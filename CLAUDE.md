@@ -22,9 +22,9 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 
 | # | Component                | Status      |
 |---|--------------------------|-------------|
-| 1 | Victim System            | Not started |
-| 2 | Fault Injector           | Not started |
-| 3 | Telemetry (Prometheus)   | Not started |
+| 1 | Victim System            | Complete    |
+| 2 | Fault Injector           | Complete    |
+| 3 | Telemetry (Prometheus)   | Complete    |
 | 4 | Reasoning Loop (ReAct)   | Not started |
 | 5 | Orchestration (LangGraph)| Not started |
 | 6 | Tool/Action Layer        | Not started |
@@ -37,8 +37,8 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 
 ## Current Phase
 
-**Phase 0 — Foundation (Days 1–2):** Complete
-**Next:** Phase 1 — Victim System + Fault Injector + Telemetry
+**Phase 1 — Victim System + Fault Injector + Telemetry (Days 3–7):** Complete
+**Next:** Phase 2 — Reasoning Loop (ReAct) + Orchestration (LangGraph) + Tool/Action Layer
 
 ## Key Conventions
 
