@@ -31,3 +31,6 @@ Thumbs.db
 
 # Eval outputs (keep scenario definitions, ignore run outputs)
 eval/results/
+
+# Injector runtime output (ground truth is a generated log, not source)
+injector/ground_truth.jsonl
