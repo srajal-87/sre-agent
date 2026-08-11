@@ -1,9 +1,10 @@
+from contextlib import asynccontextmanager
 from uuid import UUID
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 
-from app.db import get_sessionmaker
+from app.db import dispose_engine, get_sessionmaker
 from app.logging import get_logger
 from app.repository import IncidentRepository
 from app.schemas import (
@@ -14,8 +15,19 @@ from app.schemas import (
 
 SERVICE_NAME = "agent-api"
 
-app = FastAPI(title=SERVICE_NAME)
 log = get_logger(SERVICE_NAME)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Open the connection pool at startup, close it cleanly at shutdown."""
+    get_sessionmaker()
+    log.info("database pool ready")
+    yield
+    await dispose_engine()
+
+
+app = FastAPI(title=SERVICE_NAME, lifespan=lifespan)
 
 
 def get_repository() -> IncidentRepository:
