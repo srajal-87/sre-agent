@@ -1,9 +1,16 @@
+from uuid import UUID
+
 from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 
 from app.db import get_sessionmaker
 from app.logging import get_logger
 from app.repository import IncidentRepository
-from app.schemas import AlertmanagerWebhook, InvestigateResponse
+from app.schemas import (
+    AlertmanagerWebhook,
+    InvestigateResponse,
+    InvestigationResponse,
+)
 
 SERVICE_NAME = "agent-api"
 
@@ -35,6 +42,19 @@ async def investigate(
         investigation_id=investigation_id,
         status="pending",
     )
+
+
+@app.get("/investigations/{investigation_id}", response_model=InvestigationResponse)
+async def get_investigation(
+    investigation_id: UUID,
+    repository: IncidentRepository = Depends(get_repository),
+):
+    investigation = await repository.get_investigation(investigation_id)
+    if investigation is None:
+        return JSONResponse(
+            status_code=404, content={"error": "investigation not found"}
+        )
+    return investigation
 
 
 @app.get("/health")
