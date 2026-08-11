@@ -16,16 +16,17 @@ This file carries context between Claude Code sessions. Update it at the end of 
   - `POST /investigate` — Alertmanager webhook → incident row + `status='pending'` investigation stub in one transaction → `201 {incident_id, investigation_id, status}`
   - `GET /investigations/{id}` — the row; unknown id → `404 {"error": "investigation not found"}`; non-UUID → `422`
   - `app/{config,models,db,schemas,repository}.py` — `os.getenv` config, SQLAlchemy 2.x async ORM mirroring the migration, lazily-built engine + sessionmaker (so imports work without a `DATABASE_URL`), Pydantic v2 camelCase webhook schemas, thin `IncidentRepository`.
-- **Verified end-to-end against real Supabase**: integration test passes, and a manual `uvicorn` run produced a real incident + joined `pending` investigation, confirmed via a Management API `select`.
+- **Verified end-to-end against real Supabase**: the integration test passes, and `docker compose up -d --build` brings up all five containers — `agent-api` logs `"database pool ready"` at startup, `POST /investigate` → 201, `GET /investigations/{id}` → the pending stub, and the Phase 1 request chain still returns 200. Rows confirmed via a Management API `select`.
 - Docs updated: `.env.example` (pooler DSN + the IPv6 warning), `README.md` (Phases 1–2 checked), `CLAUDE.md` (component table, current phase, tech-debt list, `supabase/` in the layout), `docs/decisions.md` (Phase 2 entry).
 
 **Current state:**
 - Phase 2 complete and **committed** (Phase 1 was also committed at the start of this run; `main` is clean).
 - Tests: **api 13 passed, 1 skipped** (the integration test skips without `DATABASE_URL`); Phase 1 regression **36 passed** (15 + 8 + 9 + 4).
 - `.env` exists at the repo root (gitignored) with the working `DATABASE_URL`.
+- The stack is currently **running** in Docker (all five containers). `docker compose down` if not needed.
+- A couple of throwaway incident rows from manual verification are in the `incidents` table; delete them whenever.
 
-**Blockers:**
-- **Docker Desktop was not running**, so `docker compose up -d --build agent-api` was never executed. The image build is therefore *unverified* — everything was checked via host `uvicorn` instead. **First task next session: start Docker Desktop and run it.**
+**Blockers:** None.
 
 **Security follow-up (outstanding):**
 - The Supabase PAT `sbp_75b6…7da` has been pasted into two session transcripts. **Revoke it** at https://supabase.com/dashboard/account/tokens and issue a fresh one. The DB password is likewise in the transcript and in `.env` — rotate it in the dashboard if you want it clean, and update `.env`.
@@ -35,9 +36,8 @@ This file carries context between Claude Code sessions. Update it at the end of 
 ## Next Session
 
 **Options / pick-up points:**
-1. **(Do first, 5 min)** Start Docker Desktop → `docker compose up -d --build` → confirm all five services come up and `curl localhost:8000/health` works from the container.
-2. **(Recommended) Phase 3 — Agent core:** the ReAct reasoning loop + LangGraph orchestration + tool layer. `investigations` rows currently stay `pending` forever; Phase 3's job is to fill them in (`diagnosis`, `confidence`, `evidence`, `steps`, `cost_usd`, `latency_ms`).
-3. Optional small cycles: the api-gateway 502 fix, `/metrics` on `agent-api` + its Prometheus scrape target, or the injector → Postgres ground-truth dual-write (which makes the eval harness possible later).
+1. **(Recommended) Phase 3 — Agent core:** the ReAct reasoning loop + LangGraph orchestration + tool layer. `investigations` rows currently stay `pending` forever; Phase 3's job is to fill them in (`diagnosis`, `confidence`, `evidence`, `steps`, `cost_usd`, `latency_ms`).
+2. Optional small cycles: the api-gateway 502 fix, `/metrics` on `agent-api` + its Prometheus scrape target, or the injector → Postgres ground-truth dual-write (which makes the eval harness possible later).
 
 **To run the stack:** `docker compose up -d --build` (all five services; `agent-api` now has a Dockerfile and reads `DATABASE_URL` from `.env`). Inject faults with `python injector/inject.py --fault <t> --target <svc> [--params '{...}'] [--duration N | --clear]`. Prometheus UI at `localhost:9090`, agent-api at `localhost:8000`.
 
