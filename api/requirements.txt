@@ -1,0 +1,5 @@
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+sqlalchemy[asyncio]==2.0.44
+asyncpg==0.30.0
+greenlet==3.2.4
