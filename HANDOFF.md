@@ -6,34 +6,46 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
-**Date:** Day 3–7 (Phase 1)
+**Date:** Day 8 (Phase 2 — Storage + API shell)
+
 **What was done:**
-- Built all three victim services (api-gateway, data-service, downstream-dep) via TDD. Each has: `/health`, `/metrics`, `/admin/fault` (POST enable/disable + DELETE clear), JSON stdout logging, `X-Trace-Id` propagation middleware, per-service Prometheus metrics, `requirements.txt`, and a `python:3.12-slim` Dockerfile.
-  - **api-gateway** — `GET /request` → data-service; `timeout` fault → 504 + `upstream_timeouts_total`.
-  - **data-service** — `GET /process` → downstream-dep; `bad_config` fault → 500 + `config_errors_total` (+ `config_version` gauge).
-  - **downstream-dep** — `GET /data` (leaf); `latency` fault (sleep + warn log) and `memory` fault (holds a byte block, `downstream_memory_bytes` gauge). Multi-fault state (both can be active at once).
-- Built the fault-injector CLI (`injector/inject.py`): `--fault/--target/--params/--duration/--clear`, port map (8001/8002/8003, env-overridable), auto-revert on `--duration`, writes ground truth to `injector/ground_truth.jsonl`.
-- `docker compose up` brings up all three services + Prometheus; verified the full request chain returns 200, all three Prometheus targets `UP`, and all four faults move their signals (504s, 500s, latency, memory gauge) with ground-truth records written.
-- Created a `.venv` at repo root (gitignored) with the test/runtime deps; **36 tests pass** across the four packages.
-- Updated `docs/decisions.md` with the Phase 1 entry.
+- **Supabase project created** (personal org, not Zenisth AI): ref `usfekcxmnqkhtembnlqk`, region `ap-south-1`, Postgres 17.6, `ACTIVE_HEALTHY`. Created via the **Management API**, not MCP — the in-session MCP server only sees the Zenisth AI org.
+- **Schema applied** from `supabase/migrations/0001_incidents_investigations.sql`: `incidents` (14 cols, incl. nullable `ground_truth_*`) and `investigations` (15 cols), FK `on delete cascade`, CHECK constraints on both `status` columns, `created_at desc` + `group_key` / `service` / `incident_id` indexes, RLS enabled with **no policies**.
+- **`api/` service (`agent-api`) built via TDD**, mirroring the victim-service layout (own `Dockerfile`, `requirements.txt`, `pytest.ini`, verbatim copy of `app/logging.py`):
+  - `GET /health`
+  - `POST /investigate` — Alertmanager webhook → incident row + `status='pending'` investigation stub in one transaction → `201 {incident_id, investigation_id, status}`
+  - `GET /investigations/{id}` — the row; unknown id → `404 {"error": "investigation not found"}`; non-UUID → `422`
+  - `app/{config,models,db,schemas,repository}.py` — `os.getenv` config, SQLAlchemy 2.x async ORM mirroring the migration, lazily-built engine + sessionmaker (so imports work without a `DATABASE_URL`), Pydantic v2 camelCase webhook schemas, thin `IncidentRepository`.
+- **Verified end-to-end against real Supabase**: integration test passes, and a manual `uvicorn` run produced a real incident + joined `pending` investigation, confirmed via a Management API `select`.
+- Docs updated: `.env.example` (pooler DSN + the IPv6 warning), `README.md` (Phases 1–2 checked), `CLAUDE.md` (component table, current phase, tech-debt list, `supabase/` in the layout), `docs/decisions.md` (Phase 2 entry).
 
 **Current state:**
-- Phase 1 functionally complete. Stack is currently **running** in Docker (started this session). Stop it with `docker compose down` if not needed.
-- Nothing committed yet this session — see the suggested commits below; git status is otherwise clean from Phase 0.
+- Phase 2 complete and **committed** (Phase 1 was also committed at the start of this run; `main` is clean).
+- Tests: **api 13 passed, 1 skipped** (the integration test skips without `DATABASE_URL`); Phase 1 regression **36 passed** (15 + 8 + 9 + 4).
+- `.env` exists at the repo root (gitignored) with the working `DATABASE_URL`.
 
-**Blockers:** None.
+**Blockers:**
+- **Docker Desktop was not running**, so `docker compose up -d --build agent-api` was never executed. The image build is therefore *unverified* — everything was checked via host `uvicorn` instead. **First task next session: start Docker Desktop and run it.**
 
-**Known tech debt (from end-to-end verification):**
-- api-gateway does not gracefully handle a 5xx from data-service: `call_upstream`'s `raise_for_status()` raises an uncaught `httpx.HTTPStatusError`, so the gateway returns a 500 via Starlette's error middleware. That path bypasses the custom metrics middleware, so the gateway 500 is **not** counted in `http_requests_total` and logs a stack trace instead of a structured error. Recommended fix: catch `httpx.HTTPStatusError` in `/request` → return **502** + structured error log + record the metric. (Small; good first task next session.)
+**Security follow-up (outstanding):**
+- The Supabase PAT `sbp_75b6…7da` has been pasted into two session transcripts. **Revoke it** at https://supabase.com/dashboard/account/tokens and issue a fresh one. The DB password is likewise in the transcript and in `.env` — rotate it in the dashboard if you want it clean, and update `.env`.
 
-**Suggested commits (per micro-step, not yet made):** health → JSON logging → trace_id middleware → metrics → fault control → `/request`+timeout → packaging (api-gateway); then skeleton → fault+endpoint → packaging (data-service, downstream-dep); then injector CLI. All work is currently uncommitted in the working tree.
+**Known tech debt:** see the list in `CLAUDE.md` (api-gateway 502 handling, no `/metrics` on `agent-api`, no Alertmanager, injector doesn't dual-write ground truth to Postgres).
 
 ## Next Session
 
 **Options / pick-up points:**
-1. **(Recommended) Commit Phase 1** in logical chunks, then optionally close the api-gateway 502 tech-debt item above as a quick TDD cycle.
-2. **Phase 2 — The Agent (Days 8+):** begin the ReAct reasoning loop + LangGraph orchestration + tool layer that will investigate this environment. The victim stack + injector + Prometheus are the substrate it queries.
+1. **(Do first, 5 min)** Start Docker Desktop → `docker compose up -d --build` → confirm all five services come up and `curl localhost:8000/health` works from the container.
+2. **(Recommended) Phase 3 — Agent core:** the ReAct reasoning loop + LangGraph orchestration + tool layer. `investigations` rows currently stay `pending` forever; Phase 3's job is to fill them in (`diagnosis`, `confidence`, `evidence`, `steps`, `cost_usd`, `latency_ms`).
+3. Optional small cycles: the api-gateway 502 fix, `/metrics` on `agent-api` + its Prometheus scrape target, or the injector → Postgres ground-truth dual-write (which makes the eval harness possible later).
 
-**To run the stack:** `docker compose up -d --build api-gateway data-service downstream-dep prometheus` (omit `agent-api` — it has no Dockerfile until Phase 2). Inject faults with `python injector/inject.py --fault <t> --target <svc> [--params '{...}'] [--duration N | --clear]`. Prometheus UI at `localhost:9090`.
+**To run the stack:** `docker compose up -d --build` (all five services; `agent-api` now has a Dockerfile and reads `DATABASE_URL` from `.env`). Inject faults with `python injector/inject.py --fault <t> --target <svc> [--params '{...}'] [--duration N | --clear]`. Prometheus UI at `localhost:9090`, agent-api at `localhost:8000`.
 
-**To run tests:** from each of `services/*` and `injector/`, run `../../.venv/Scripts/python -m pytest` (or `e:/sre-agent/.venv/Scripts/python`).
+**To run tests:** from each of `services/*`, `injector/`, and `api/`, run `e:/sre-agent/.venv/Scripts/python -m pytest`. To include the DB integration test: `DATABASE_URL=... e:/sre-agent/.venv/Scripts/python -m pytest` from `api/`.
+
+**Manual API check:**
+```bash
+curl -X POST http://localhost:8000/investigate -H "Content-Type: application/json" \
+     -d @api/tests/fixtures/alertmanager_firing.json
+curl http://localhost:8000/investigations/<investigation_id>
+```

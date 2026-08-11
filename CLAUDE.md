@@ -28,17 +28,19 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 | 4 | Reasoning Loop (ReAct)   | Not started |
 | 5 | Orchestration (LangGraph)| Not started |
 | 6 | Tool/Action Layer        | Not started |
-| 7 | Storage (Supabase)       | Not started |
+| 7 | Storage (Supabase)       | Complete    |
 | 8 | Audit Trail (LangSmith)  | Not started |
 | 9 | Evaluation Harness       | Not started |
-| 10| API Layer (FastAPI)      | Not started |
+| 10| API Layer (FastAPI)      | In progress |
 | 11| Deployment (Fly.io)      | Not started |
 | 12| Demo UI (React)          | Not started |
 
 ## Current Phase
 
-**Phase 1 — Victim System + Fault Injector + Telemetry (Days 3–7):** Complete
-**Next:** Phase 2 — Reasoning Loop (ReAct) + Orchestration (LangGraph) + Tool/Action Layer
+**Phase 2 — Storage (Supabase) + API shell (FastAPI):** Complete
+**Next:** Phase 3 — Agent core: Reasoning Loop (ReAct) + Orchestration (LangGraph) + Tool/Action Layer
+
+Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Phase 3 = agent core).
 
 ## Key Conventions
 
@@ -65,7 +67,8 @@ sre-agent/
 ├── injector/                  # Fault injection CLI + ground-truth logger
 ├── eval/                      # Evaluation harness + scenario definitions
 │   └── scenarios/             # YAML/JSON scenario files
-├── api/                       # FastAPI service wrapping the agent
+├── api/                       # FastAPI service wrapping the agent (agent-api)
+├── supabase/migrations/       # Checked-in .sql migrations (no Alembic)
 ├── ui/                        # React demo app
 ├── infra/                     # Prometheus config, deployment configs
 ├── docs/                      # Architecture docs, decisions log
@@ -92,7 +95,16 @@ python eval/run_eval.py
 
 ## Known Issues / Tech Debt
 
-- None yet (Phase 0)
+- **api-gateway does not handle a 5xx from data-service.** `call_upstream`'s `raise_for_status()`
+  raises an uncaught `httpx.HTTPStatusError`, so the gateway returns a 500 via Starlette's error
+  middleware — bypassing the metrics middleware (so it is never counted in `http_requests_total`)
+  and logging a stack trace instead of a structured error. Fix: catch it in `/request` → 502 +
+  structured log + metric.
+- **`agent-api` exposes no `/metrics`** and has no Prometheus scrape target in `infra/prometheus.yml`.
+- **No Alertmanager.** `infra/prometheus.yml` has no alerting rules and no Alertmanager container,
+  so `POST /investigate` is exercised with fixture payloads rather than live alerts.
+- **Injector does not dual-write ground truth to Postgres.** The `ground_truth_*` columns on
+  `incidents` exist but stay null; ground truth lives only in `injector/ground_truth.jsonl`.
 
 ---
 

@@ -61,8 +61,8 @@ python eval/run_eval.py
 ## Project Status
 
 - [x] Phase 0: Foundation & repo setup
-- [ ] Phase 1: Victim system + fault injector + telemetry
-- [ ] Phase 2: Storage + API shell
+- [x] Phase 1: Victim system + fault injector + telemetry
+- [x] Phase 2: Storage + API shell
 - [ ] Phase 3: Agent core (reasoning loop, tools, policy)
 - [ ] Phase 4: Observability & audit trail
 - [ ] Phase 5: Evaluation harness
