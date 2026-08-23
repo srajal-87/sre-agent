@@ -1,0 +1,27 @@
+# Root build context is the whole repo (agent-api needs both api/ and agent/),
+# so everything not needed in an image must be excluded here. Without this the
+# context is hundreds of MB per build.
+
+.git/
+.github/
+.venv/
+venv/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+.env
+*.env.local
+
+ui/node_modules/
+ui/build/
+ui/dist/
+
+# Not needed at runtime.
+docs/
+eval/
+tests/
+**/tests/
+*.md

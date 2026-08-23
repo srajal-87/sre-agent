@@ -1,0 +1,6 @@
+pydantic==2.13.4
+httpx==0.28.1
+docker==7.1.0
+sqlalchemy[asyncio]==2.0.44
+asyncpg==0.30.0
+greenlet==3.2.4
