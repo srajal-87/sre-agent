@@ -14,13 +14,19 @@ Usage:
 import argparse
 import json
 import os
+import random
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
 import httpx
+
+try:  # package import: the tests, and `python -m injector.inject`
+    from injector.seed_deploys import AUTHORS, write_deploys
+except ModuleNotFoundError:  # direct script run: `python injector/inject.py`
+    from seed_deploys import AUTHORS, write_deploys
 
 # Host ports as mapped in docker-compose.yml.
 TARGET_PORTS = {
@@ -30,6 +36,46 @@ TARGET_PORTS = {
 }
 
 GROUND_TRUTH_PATH = Path(__file__).with_name("ground_truth.jsonl")
+
+# How often a fault gets a preceding deploy. Deliberately not 1.0: if every
+# fault had one, "a deploy exists" would trivially imply causation and the
+# Phase 5 evaluation would measure nothing.
+DEPLOY_PROBABILITY = 0.7
+
+# How long before the fault the correlated deploy lands.
+DEPLOY_LEAD_MINUTES_MIN = 1
+DEPLOY_LEAD_MINUTES_MAX = 10
+
+# Commit subjects plausible for each fault's *area*, none naming the fault
+# itself: the agent must correlate on timing and service, not read the answer
+# off the message. Kept in step with seed_deploys.MESSAGES.
+FAULT_DEPLOY_MESSAGES = {
+    "latency": [
+        ("cache upstream responses for repeat keys", ["app/main.py", "app/cache.py"]),
+        ("reduce serialization overhead on the hot path", ["app/serializers.py"]),
+        ("add retry to the downstream client", ["app/client.py"]),
+    ],
+    "timeout": [
+        ("tune connection pool settings", ["app/config.py", "app/client.py"]),
+        ("raise worker concurrency", ["Dockerfile", "app/main.py"]),
+    ],
+    "bad_config": [
+        ("refactor configuration loading", ["app/config.py"]),
+        ("update dependency pins", ["requirements.txt"]),
+    ],
+    "memory": [
+        ("cache upstream responses for repeat keys", ["app/main.py", "app/cache.py"]),
+        ("raise worker concurrency", ["Dockerfile", "app/main.py"]),
+    ],
+}
+
+# Used when the fault type has no dedicated pool, so a new fault type never
+# crashes the injector.
+NEUTRAL_DEPLOY_MESSAGES = [
+    ("split request handler into smaller units", ["app/main.py", "app/handlers.py"]),
+    ("bump base image to python 3.12.4", ["Dockerfile"]),
+    ("adjust health check interval", ["app/main.py", "docker-compose.yml"]),
+]
 
 
 def resolve_target(target: str) -> str:
@@ -65,6 +111,29 @@ def _default_poster(url: str, payload: dict) -> None:
     resp.raise_for_status()
 
 
+def _utc_now_dt() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def build_correlated_deploy(
+    *, fault: str, target: str, fault_started_at: datetime, rng: random.Random
+) -> dict:
+    """Build the deploy row that will look like a plausible cause of ``fault``."""
+    pool = FAULT_DEPLOY_MESSAGES.get(fault, NEUTRAL_DEPLOY_MESSAGES)
+    message, changed_files = rng.choice(pool)
+    lead = rng.uniform(DEPLOY_LEAD_MINUTES_MIN, DEPLOY_LEAD_MINUTES_MAX)
+    return {
+        "service": target,
+        "version": f"v{rng.randint(1, 3)}.{rng.randint(0, 9)}.{rng.randint(0, 9)}",
+        "commit_sha": f"{rng.getrandbits(28):07x}",
+        "author": rng.choice(AUTHORS),
+        "message": message,
+        "changed_files": list(changed_files),
+        "deployed_at": fault_started_at - timedelta(minutes=lead),
+        "status": "succeeded",
+    }
+
+
 def run(
     *,
     fault: str,
@@ -76,18 +145,52 @@ def run(
     sleeper: Callable[[float], None],
     gt_path: Path,
     now: Callable[[], str],
+    deploy: bool | None = None,
+    deploy_writer: Callable[[list[dict]], None] | None = None,
+    deploy_clock: Callable[[], datetime] = _utc_now_dt,
+    rng: random.Random | None = None,
 ) -> dict | None:
     """Orchestrate an injection. Returns the ground-truth record, or None.
 
     - clear (or duration == 0): disable the fault only; no ground truth.
     - duration > 0: enable, wait, disable; full ground-truth window.
     - duration is None: enable and leave active; ground truth with ended_at=None.
+
+    Before enabling the fault, a deploy for the target service is *sometimes*
+    written to the ledger a few minutes earlier, so the agent has a real causal
+    deploy to find. ``deploy=None`` decides at random (see DEPLOY_PROBABILITY);
+    pass True/False to force it. Either way the outcome is recorded in ground
+    truth, because Phase 5 has to score "no deploy caused this" as well.
     """
     url = resolve_target(target)
 
     if clear or duration == 0:
         poster(url, {"fault": fault, "enabled": False, "params": params})
         return None
+
+    rng = rng or random.Random()
+    should_deploy = rng.random() < DEPLOY_PROBABILITY if deploy is None else deploy
+
+    correlated_deploy: dict | None = None
+    deploy_error: str | None = None
+    if should_deploy:
+        row = build_correlated_deploy(
+            fault=fault, target=target, fault_started_at=deploy_clock(), rng=rng
+        )
+        writer = deploy_writer or write_deploys
+        try:
+            writer([row])
+        except Exception as exc:  # noqa: BLE001
+            # Injecting the fault is the point; the deploy row is auxiliary. A
+            # ledger outage must not stop an experiment, and ground truth stays
+            # accurate: no deploy was written, and this says why.
+            deploy_error = str(exc)
+        else:
+            correlated_deploy = {
+                **{k: row[k] for k in
+                   ("service", "version", "commit_sha", "author", "message")},
+                "deployed_at": row["deployed_at"].isoformat(),
+            }
 
     poster(url, {"fault": fault, "enabled": True, "params": params})
     started_at = now()
@@ -105,6 +208,10 @@ def run(
         "params": params,
         "started_at": started_at,
         "ended_at": ended_at,
+        # None means no deploy could have caused this fault - which Phase 5
+        # must be able to score just as much as the positive case.
+        "correlated_deploy": correlated_deploy,
+        "deploy_error": deploy_error,
     }
     write_ground_truth(record, gt_path)
     return record
@@ -126,6 +233,18 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--clear", action="store_true", help="revert the fault immediately"
     )
+    parser.add_argument(
+        "--deploy",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "write a correlated deploy before the fault (--no-deploy to skip); "
+            f"omit to decide at random with p={DEPLOY_PROBABILITY}"
+        ),
+    )
+    parser.add_argument(
+        "--seed", type=int, default=None, help="RNG seed, for a reproducible run"
+    )
     args = parser.parse_args(argv)
 
     params = json.loads(args.params)
@@ -139,6 +258,8 @@ def main(argv: list[str] | None = None) -> None:
         sleeper=time.sleep,
         gt_path=GROUND_TRUTH_PATH,
         now=_utc_now_iso,
+        deploy=args.deploy,
+        rng=random.Random(args.seed),
     )
 
     if record is None:
@@ -148,6 +269,16 @@ def main(argv: list[str] | None = None) -> None:
             f"injected {args.fault} on {args.target} "
             f"(incident_id={record['incident_id']})"
         )
+        deployed = record["correlated_deploy"]
+        if deployed:
+            print(
+                f"correlated deploy: {deployed['service']} {deployed['version']} "
+                f"at {deployed['deployed_at']} - \"{deployed['message']}\""
+            )
+        elif record["deploy_error"]:
+            print(f"correlated deploy NOT written: {record['deploy_error']}")
+        else:
+            print("no correlated deploy (this fault has no deploy to blame)")
         if record["ended_at"]:
             print(f"reverted after {args.duration}s")
         else:
