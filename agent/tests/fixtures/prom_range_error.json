@@ -1,0 +1,5 @@
+{
+  "status": "error",
+  "errorType": "bad_data",
+  "error": "invalid parameter \"query\": 1:31: parse error: unexpected identifier \"is\""
+}
