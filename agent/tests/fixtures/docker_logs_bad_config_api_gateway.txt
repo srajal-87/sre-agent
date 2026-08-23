@@ -1,0 +1,1200 @@
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48488 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48502 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48514 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48524 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48530 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48542 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.1:48552 - "GET /request HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 43, in trace_id_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 280, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 84, in request_endpoint
+    upstream = await call_upstream(trace_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 31, in call_upstream
+    resp.raise_for_status()
+  File "/usr/local/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://data-service:8000/process'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:58.591Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3cdad957-128a-43cc-a902-d409e23dd9db", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:58.617Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b78d0cea-9aec-4e0d-83a3-7fa13fb165f7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:58.692Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "06f833cc-9c2e-4d81-9861-6a6efe17e63f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:58.722Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b9ac447b-bb22-4b26-90f7-83fc152d55b1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:58.879Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8b78b537-ecb2-4f81-8e90-196954b3c41c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:59.089Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "250555e7-7120-4388-bf7c-fe6e5d139c52", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:59.269Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "55af1a20-61ba-4ad5-a195-e2073d06920a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:59.461Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "af68f689-140f-4374-891d-1423c5d72f2a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:59.654Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c262ef08-0702-4260-942f-5f85457d4128", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:12:59.841Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5d1b7ad1-973d-4d91-b7c9-d7a79adf3f7a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.037Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c7168e52-2a66-420a-856d-6c480bf7be64", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.237Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "94435595-17f4-4833-8310-082d486432a1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.434Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e3a2be74-6ccb-4543-b7a6-13043d23b67a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.615Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "05a91823-080d-42b6-b753-58fdcd0b43f9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.806Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7b0c8a1d-da71-4b59-86c9-c06ddf6e5e36", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:00.992Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bbfb7f6d-5774-4a67-b72a-1c8b10c8fb4e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:01.195Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "dc8fe763-35fe-4ed7-acd5-77b1d78701cc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:01.394Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4cda520b-1b0a-49d8-9e1b-16e60208ba44", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:01.582Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9f5acf5f-4d8f-4a39-acba-48ae970f7627", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:01.762Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "915dc316-dc41-4088-b575-02f103b7685d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.279Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e49a94ef-e0ab-4dce-a857-7edd59059fb6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.306Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e1463fc9-543c-4514-b9d5-d0a536b01790", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.344Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "36f02ae4-b678-4f5c-a8ed-aeac079c944b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.553Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c79c21a5-29c8-48a9-b852-5c32218c4972", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.731Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e9fd9f5d-9ca5-4045-93d8-7acdc065456e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:02.933Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d8ea8956-bd5f-480a-88ff-9a343b60e723", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:03.119Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "f86b521d-701b-41a9-8a85-e16b520acd18", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:03.301Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "449d7348-b141-4a79-a675-2fe17c4cef15", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:03.496Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "305f4a00-d65f-4c8f-9f6c-140f045bf1b3", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:03.701Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6580bc4a-8e18-4ac9-a197-d0140f18177f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:03.903Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "35dee24d-d138-4f29-b408-0cea32e061bd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:04.090Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4c449960-cc37-4ed0-b436-7f9a71a0f6da", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:04.276Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "dc01a36a-afd5-4b0b-8d7f-36c536e0769d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:04.456Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "600f6546-aa6d-4cfa-b293-46f01c30ed9f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:04.649Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4401a138-91e6-4f37-9725-0dc514b96491", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:04.861Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a52fabc3-86d7-424e-b8a7-d6d133ad32a5", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:05.038Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "60559aaa-b853-418b-a54c-bc0d4e8f3707", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:05.243Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "60c68760-e6a6-4b4a-866d-79c705c22c6e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:05.425Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "71b73b46-d6de-4007-8021-d4ef631395ec", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:05.624Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a9a5119a-bbb2-4003-b7cc-6597a04e53e3", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:05.810Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "32edba30-a22a-4a70-afa1-f0d0ed4d0a3e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.009Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6de23d7c-63c8-46e7-a8db-a04175d0cb54", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.199Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c27bcc2a-6a71-4bc3-bfae-1c3aa9d57b76", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.440Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "60b870de-af5d-4eae-bed4-d8868741a3ba", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.587Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c1a89aac-40f2-4d74-beb7-f6e4e8a19f4d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.771Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "95ab455a-0a44-4db2-bd63-141491de970c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:06.962Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "45b8b2a7-2879-4b28-8f56-df72a9c69764", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:07.172Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e28ec2bb-d876-41fc-bc6e-8506d810aee5", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:07.352Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "af3756fb-5e48-4d73-ae9b-8f8c17b69108", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:07.552Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "da7f3654-9e58-46c8-88c2-9fb6d83c847d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:07.735Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "30ceb3cd-14cd-4ca7-919f-de05173219e8", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:07.935Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c308c0bb-9b42-4b83-a9a4-398522839549", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:08.125Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "422e6a43-bc7c-4224-8c1a-1543a828a024", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:08.325Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "222f5940-3526-4e10-8ffc-7bb120a44f38", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:08.510Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c462b92d-08af-4d4e-893f-3306fec681da", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:08.726Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b15b0f15-ef6b-455d-8ceb-abccd039371d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:08.904Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "34ff05cb-3471-46e8-84fa-208d30df8e20", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:09.085Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4b40555e-04e7-42af-97e5-add062a67b6e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:09.279Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ca6bd4ff-cae9-431b-83a1-55514313d86c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:09.489Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d94eae8e-49ef-47e6-abbe-e7b0c0779801", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:09.674Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b6bb75cc-5eb2-4724-981f-c23768b095bd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:09.875Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cee8c14f-ab5e-4651-a999-ad0dbc0c5932", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:10.061Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d0f0c130-0a5a-41d2-acbc-f28899aad3de", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:10.251Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6ca9436a-de68-47d6-8a0a-5ec5de98493b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:10.450Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6dff5410-2f2b-43af-b11e-bc7e1949b142", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:10.639Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "32518c05-a06f-42d7-a82a-92b5211a9b93", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:10.837Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "faeb3b09-9997-4fc9-9e06-077d933b79f1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.036Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d82ee0bf-84ef-4a4a-bb66-ff1da8406742", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.224Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "33af6f00-5520-4169-b7fc-201ab195fa02", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.420Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "394ebc6c-f91a-43f7-80ec-67a45e1ff2cb", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.605Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b97eac3a-43e9-40d7-87df-ba52e57dbcc2", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.800Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7ecf99f7-798e-4510-9854-a8e3499e7d5c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:11.992Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "109eda02-3306-4828-a7da-3977a68c94ba", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:12.603Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6952a753-03f5-4015-9ba1-5374fc1a0c82", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:13.348Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5d6f7dfe-3eb1-41a6-8b1d-07bfb494f7cb", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:13.547Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4b07b590-1090-4e14-bbba-e16cb08fad66", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:13.739Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "308c8c03-1d81-4120-8426-9a0b58727a09", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:13.928Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b8839bf0-967b-45a4-bc44-c4b03eb15f56", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:14.116Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c91193f6-dec7-49d0-a917-28d4a722bc30", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:14.321Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1fad8266-62ee-41cf-b874-899055c1ee00", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:14.512Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e1dd0ee1-9e66-4554-a14a-c5fc5891f8dc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:14.703Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "aa25a60b-0759-48ae-85d1-175a6fff4777", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:14.896Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "311664d0-2e4a-4d41-838b-57f7c75ae24a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:15.103Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "2bc5cfb9-10ff-4974-a1e2-cc7272290d7c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:15.276Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "63fa19af-d61d-48c1-aae3-263c487788d3", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:15.496Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "de87ebc3-e77d-4e1e-8308-38874fcbb97b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:15.661Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8763a0fb-3374-4490-b829-9b7ef2823b48", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:15.860Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4b09ad76-dce5-46a1-bc44-0b12030929a4", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:16.053Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "656453e6-3ed4-4e01-941f-0e348dad1870", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:16.254Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "102d8671-d4dd-46ec-b475-6f3eebdb7816", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:16.431Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b70ae7e9-f7ed-479f-9fe2-4065b9a4a52e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:16.635Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "64492a36-bce8-41d4-b57f-dfb7201de93e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:16.826Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6e42881c-9553-44fb-9271-7af5432acf60", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.025Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3d93653a-bef5-4a9d-aa70-8158e5b17d90", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.216Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e105d6be-79b5-4f60-b89d-5d6ced5a6279", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.425Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "10525677-a623-44ae-8ffc-de3ba4a6939a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.593Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5305dd4e-8483-4ae5-a247-609bd32026f3", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.801Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9f375d18-b08f-4a0c-ad3d-17db31945983", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:17.992Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "51d36973-af0c-4951-bb6c-26e8c2a15a36", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:18.183Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cdb488cb-fdc3-4398-b612-17d6bab4c371", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:18.371Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "91cfba88-676e-40ed-8b1f-5cffecbc9349", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:18.568Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "934f51c9-cf35-4a37-808e-b15188de0a1b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:18.755Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "375b23c1-d9f3-4ec0-8341-ae56009c46a9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:18.957Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "fb3e03f8-b328-446e-8266-bd2eb2c99583", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:19.145Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "138354dc-5a79-46c9-84fc-a0f988d16208", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:19.348Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3ed36462-cd77-4cfc-8a9e-db70e469ace6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:19.540Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "39db638a-4fe5-4c91-836b-5bb028a0dad8", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:19.729Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "740dd340-49f4-4deb-9e40-aa3b980c8797", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:19.922Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "0be24a73-2a36-44ca-9733-6d5df06f36d0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:20.112Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "60d75eb1-b394-4eb7-9811-4fbe7afa7233", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:20.310Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9d159b57-f59c-4516-981d-0bc7eefbd4bc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:20.499Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "be74b600-554b-434d-a385-3d667d4f4d21", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:20.688Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "849a60e9-c780-4f5a-97a5-1ae1307c1667", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:20.886Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cfa0f7f4-66c1-4cfe-a2f7-f9ad7f6df11e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:21.084Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7752256b-37b0-4603-90c2-54e5ae1b023c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:21.276Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "de411cce-5333-4cd0-b297-51d2af9d4468", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:21.456Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ef0bf94a-f23a-4548-ab09-3c729e8fbb66", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:21.654Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5f28c05e-934f-4cb7-a4bc-216eb20235c9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:21.850Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "957d22e8-4fe7-43b3-b0a3-e993800f4ea1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:22.051Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "05e58d9b-ae8d-49f9-b3f5-0cd52c44b661", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:22.253Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9d9e6aea-b6b6-4c52-9b86-4d5f6a67d08c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:22.424Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1811ddb6-9d5e-48c4-8a23-e9b04c89a2fd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:22.624Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c91bbb5f-ab6e-4b5f-989d-fb6b3435f1ff", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:22.831Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "00a952cf-018f-4ee5-b8d3-83a0ca7beff9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.016Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4ade1ea2-f293-4420-82e2-9e59a79bc947", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.222Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "0d1a8e4c-1e4d-412d-90ea-f2bdd8bab8f7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.400Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "89066a64-4ac4-424a-9c65-1597533247b4", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.588Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d16291dd-b33a-4e85-92ce-f89f0bdb5e0f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.780Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "700fd18f-59a7-4611-9ff7-6f1f7ceb9d91", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:23.976Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bcba89ad-f523-49a4-98a1-9bb2d721ae3e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:24.173Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d5146448-d4d3-4f98-9911-ee0cad0b8acd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:24.373Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "64125940-ab4b-44b6-b81f-8b7c2e920ddb", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:24.569Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5668c0d1-d6ae-4e7b-b37e-e04779be75b9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:24.743Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "17b45f6c-1271-4fc1-ae68-4a90a18ad68e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:24.939Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4de513a7-6f5f-40f7-825e-15ef1f1e6f43", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:25.131Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7ae81e48-a288-4c8c-bde1-14b5755b3ea7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:25.326Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bbda128b-e57a-423c-867a-b6235d930f45", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:25.529Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "916eff2d-1bd5-4432-b719-2bd45b0aa11b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:25.724Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "08458c81-b8e9-429b-9ef2-ba6bc7d5dede", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:25.904Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8fb90de6-23c0-45e6-aa13-e4b7785f4cfb", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:26.098Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7be6f375-9be9-4709-ba5b-d9d92749e242", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:26.294Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "69f06a92-4084-4a1c-a86e-78834c5ea05a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:26.486Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4320645b-370e-4557-b21e-d0b5359b1479", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:26.687Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "338f798a-2d0c-4411-8a5e-f9d665524323", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:26.882Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "16c82937-ebb6-4b86-9227-7bdd4a550c4b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:27.069Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "057b2b65-2f3e-4aeb-8f87-f60f1467270a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:27.261Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7e8913e7-5252-4761-a8c3-fb3dcc9fe805", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:27.454Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "80af00d8-6f74-4b88-98ff-2b336094d688", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:27.648Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b1c4340f-c732-40bb-838c-9c8e879302ba", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:27.835Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a7f416a5-050e-45ee-a0b0-ce84cbd9aa6d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.073Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b7d82edb-5f1e-4ca9-9b1f-ce1d84868dfa", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.216Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b386af2e-ebf0-43d5-a961-a61ef8827611", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.408Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "80880626-9ca4-4703-9109-c2dc63b4f2c7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.604Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9b4c6e85-c6f0-47fe-9594-b3ed186b3b40", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.802Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "33e0b87e-6fba-431c-9a52-2c98a4dffc91", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:28.994Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b2bb643b-27ca-4e46-83d5-3b73f14611ca", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:29.190Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d474f9e4-a365-47a4-87c5-70f58efd18ee", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:29.388Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3aa01007-1d63-4710-b270-5de1d2200d0e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:29.574Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c5e285e7-26bd-4060-950b-9264ac814ca0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:29.770Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b0e806b4-ca77-4f38-9861-f19d3a54d5f7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:29.975Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6eeda894-0793-4de5-8bdf-db3d098e101d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:30.152Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1067026f-f442-4a34-ac72-b49c8ecb918b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:30.355Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "31119c04-46dd-448f-9173-dce205707723", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:30.544Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "dfa008be-7452-4518-bf96-618cbfd7cb2e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:30.740Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "481cfdd3-775f-470b-be77-52a87bf551d3", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:30.937Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e92cb737-0f89-40db-ae25-0ac40fa6a86b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:31.136Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a3a20e3f-3de2-4baa-b7ff-da401f23d93d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:31.314Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1a03b98c-5993-4e29-86f5-cdcefc534c1b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:31.515Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "9d7e402f-b5f4-4bb2-87f6-adb08eda2791", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:31.710Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c69a7e81-c27e-4f9a-9fef-f9fa66ccd008", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:31.907Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "dc0330ca-dfa4-4281-ab8d-00b36e29c047", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:32.100Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cb569daf-a2be-45c4-8535-701026ad7b59", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:32.295Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1b5c2fbe-d0ec-4d45-ad12-be3171b3fb4c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:32.497Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1c8f7b35-10f8-4121-8c9a-b2ff787cc907", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:32.684Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d3ddb33d-6028-421f-8a6e-89fc66e77b25", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:32.878Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "17314b42-77e5-4993-b0df-7e00d0b6f5c6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:33.070Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b92f7552-4494-46e7-908a-9cd5a6f0afbd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:33.252Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5d9e1028-14e3-4101-a9ce-094c9fa77176", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:33.503Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a8f928d7-36dd-4975-a8fd-359f8ce8365a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:33.640Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1e4623c2-1dc5-4bd0-b8dc-55c16877a1da", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:33.859Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b0c9098f-474f-4892-a035-236df62e3b71", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.035Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "11d7c26e-b331-4cd2-ac5b-6108f089e0e4", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.218Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "22aca35a-24ce-4266-9f14-c823f293374e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.411Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6084bfd7-bfc3-455d-9bd2-42b900658281", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.616Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "89228548-c8c9-4152-a461-7011ecf340fa", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.818Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e4caf1ce-a497-4c8c-a2c0-52bab4394e05", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:34.992Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "550b885a-89bf-49b8-a54b-d1eed533add7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:35.191Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d3f0ced2-3ede-4266-baa8-e9503b5898a0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:35.432Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "0ed5ee85-afa6-48c3-962f-45f966be033d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:35.569Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c997a757-172b-4668-87c5-1c44aa84ac2a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:35.782Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "560d59c1-2039-406e-b128-609df4405396", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:36.048Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5adc249d-eea1-40dd-8f5b-e81a6f7dbe8d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48566 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:39.932Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "065f29fa-f7a4-458c-bd66-7a084ebb9d28", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:39.959Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "0ac6e733-dde9-47cd-9453-94df684b3053", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:39.984Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8930d74e-62e5-4368-9a93-7d1aea1ed078", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.011Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ea0dc7d5-4589-4b30-946f-8053f8111e77", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.170Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "06f0042c-293e-4dc8-a20e-039d9bcabe50", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.354Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e3f2d046-0a54-4c16-8ea6-e80e19f7fc11", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.552Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "07dbd9c4-f65f-4d6f-8b1f-908ce9aa5cf6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.732Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "25c00b2f-04cc-45dd-9854-ded9100ea2da", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:40.932Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "84d6a114-ba79-422e-a24c-a5a0aa113c03", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:41.125Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "64887702-4810-4f2f-a7b4-98f721eb26ba", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:41.341Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b4260bb6-d8b6-4453-bf70-3efc890a3032", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:41.521Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4db4462d-f949-46a5-a784-1dfc27540436", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:41.713Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e33bd8aa-5778-4788-b8d7-05b94be29171", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:41.896Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5d90ae10-4dab-422d-a1b2-f50d453bc5de", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:42.091Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "521d6af8-dc20-426a-bfac-70a3fa891fe4", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:42.287Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6d52807c-11e2-49c1-9bf0-24d13e09daf7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:42.505Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "07d8ef70-c290-4278-864c-241b63bae36f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:42.675Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "fe4a714d-8fbf-4ac6-b6d3-c98fd7592809", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:42.857Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8eeafefd-161e-4bd0-9e8a-a8d2e9311461", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:43.052Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c96c9af8-f269-40d9-851e-19e8ae183004", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:43.732Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "373cc1b7-cc44-434e-8a15-8f812bc22631", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:43.933Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5d11f4dc-aa71-4cfa-b999-a59f76fdad2a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:44.682Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "28ffed27-933a-48ae-9edc-ca60faa7ec0a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:44.848Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "39e8c93d-489c-45d4-8d22-11b6117bf02f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:45.043Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "16826847-4c3f-42f2-8703-5fe7329bb35a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:45.238Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ff1d914d-6b35-428b-a6a5-446096e3467e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:45.437Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6cfcb311-74c1-428a-ac0f-cf5bb80a1480", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:45.627Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7ae403b3-3914-4c07-8c67-e43c8f0fe629", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:45.848Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "52fc270c-1ef4-440e-a532-32c3d535c35e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:46.020Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "261f478f-e2e3-428b-91b2-9887b8a49286", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:46.213Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5fd3b5f8-d553-4624-9661-e8ef4fb1ca03", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:46.395Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ab2b39d1-7150-4dd1-9ae0-3db096780b3d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:46.595Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "fa02b8e9-e732-4a12-8495-c9f342e35a60", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:46.789Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "2a1ea9cd-2ef2-48ad-a04d-51323050f999", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.004Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "f69c4318-5bce-44fb-8704-acd03fcefa2e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.177Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "50a48abc-619d-40d0-a5c5-6fc59b144bca", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.361Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "45dc221a-034f-43f9-aa9e-6ea556e75c2e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.566Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4b590dfe-5e8d-4d25-8a97-f0ee31b3cd10", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.748Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "90c6da9a-1bfd-47e7-b2d7-b03f9d88dab1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:47.945Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "2260d64b-6a60-4ddf-bbfc-42972bcf6749", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:48.185Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "eb87cac6-88f5-4ae1-9681-d2f375dc524c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:48.325Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ada9032c-4e30-431e-997e-fa6bd798dfb2", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:48.522Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ef8f906e-e172-4d11-a9bc-98b1df32ab14", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:48.722Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "724e579c-6555-4516-9fd7-f45dfbab8c19", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:48.916Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "54188946-afd7-492f-a930-deb15b687b54", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:49.111Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "04121fa2-be18-447d-892f-d75b4e094f80", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:49.327Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e94d7825-98a0-4759-a7ab-997f8da22626", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:49.490Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1e59682c-ab2d-4b94-993d-ace49baead57", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:49.726Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "029c223c-8c5a-4cb1-b7b5-60e3d1b59336", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:49.883Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "50b5945c-1173-4b59-b945-0614a8717a2c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:50.077Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d2560cf1-7a6d-46e2-997d-a742ddfd3f5f", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:50.275Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "69552585-9b95-41f4-821f-5d5639511577", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:50.486Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "6e60b07e-dcc8-408e-a26a-bae199e01974", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:50.650Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e411df39-2211-4238-b20b-16c4bd3e42ed", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:50.840Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "488d63da-1a06-47b4-abd1-5f2821aa70ee", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:51.037Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "fec2f52d-fc87-47d3-97b8-8fafc653c85b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:51.236Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4d0840b6-2fc6-4da2-820c-6f9cfc389c92", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:51.431Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "2acca35a-4b76-45a8-90ad-378a9b54d6e7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:51.650Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "4df4121e-5903-4d28-b837-d71b8d95cccd", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:51.807Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "f8b1366d-6e62-4b47-960f-80df6457cd96", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.001Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d1b8c750-0f93-4503-a664-4e589d02d28d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.197Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bae2d261-f6a0-41d6-af1f-f6f91dfddd64", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.391Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "237d986a-5ff8-4a8e-8753-745cda4e50f9", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.586Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "5e3a7fd9-3a51-4899-97dc-0881ec59f7c6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.807Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "81298ca3-b013-4fce-a36b-4ea8cad516d0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:52.978Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8b064381-5ca2-4a26-8d76-c6477f6d5812", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:53.178Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bafaedb1-ff83-4606-a4d3-4e0b5fff6e15", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:53.352Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3cac8710-1d51-457b-b986-a15e2b2f90df", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:53.548Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1c8a542d-f719-4033-9173-859f319bd0f4", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:53.742Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "be192a1e-4942-40db-a77e-3767070a7e61", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:53.949Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3a959cee-b95f-4f15-a7be-f0809578aefc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:54.135Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b8cfaa5f-f1b0-4e38-a9a4-74d5c829624b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:54.331Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b5ab49c3-7ecb-4391-b437-3a00a846a5e5", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:54.525Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "b0037508-7a72-4d2e-a118-7a71d6a36f14", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:54.718Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "15605175-316e-41da-9a11-98a58e8f9e03", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:54.908Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "493722d2-9ef2-43bf-95eb-4bdd43871aa2", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:55.102Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "17d8425e-28a1-4582-8d2f-7a3f66c4c13e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:55.296Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bbc3402e-7570-40ea-8dbb-64f14af53557", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:55.492Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cc7fd3f4-a39e-45a6-b545-7e43d4936e57", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:55.688Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "de71a292-1589-43ed-af6e-d6e309fd7b62", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:55.878Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "19b043b2-2617-4bc7-864b-ca70e461b0dc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:56.123Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "384b73f8-5276-4eb3-bb4b-e83305c5db22", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:56.254Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "dadb4600-a2c4-472c-bbb3-3f3a6994d69a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:56.447Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ed94d477-f08c-4654-a50f-dca6fe4769a6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:56.643Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c1a6dd74-96e7-4369-8166-6c7997af75b0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:56.837Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cf94d78e-0473-4f07-8595-82ddc484f93d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.034Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1cb2ff6f-0b6a-46ea-a5d9-1a954883752b", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.251Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ae6850c9-dfd7-4f6d-b8f9-519333e33625", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.414Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "aaa749a2-069a-45d9-bf8d-0f9d9803cb32", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.607Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "255271a7-9271-4d5f-9a08-42e778650094", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.828Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7615cdca-7c9d-4442-a7d1-23ff8b03b179", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:57.992Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "45bdc2ff-692c-4908-a49f-1d57b428b726", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:58.191Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "2e975e42-170f-444f-b70e-7a28149617a1", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:58.406Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8df426f6-4621-440b-a2a8-70d1cd4a3d97", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:58.586Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "8347cfa0-20f7-4546-a9c7-0de5c6fd4002", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:58.764Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "cf844881-d900-490b-8f28-935d04808dd6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:58.959Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "34636c95-1834-4824-a1d9-a44bd4b060d8", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:59.160Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e1f7dcf7-b504-4e32-8987-e0b5dbcf8ccc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:59.353Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "bd2f4aec-b023-4539-aa48-9ab85c3be70c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:59.569Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "1fe154a7-b5bc-447f-b6d9-436cfa23d279", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:59.745Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "ff247c37-a7f0-4dbe-8cd8-08d4ff7ef84d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:13:59.939Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "05be89e0-2325-4743-b60c-c7a0b9d7a172", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:00.119Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "16ca8012-fb88-4f87-a8a5-63dc3f34d8e6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:00.313Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "198d9f4b-cccb-4634-a94c-1e48ad23e939", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:00.510Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "29a6db13-a1a8-4eff-949b-b33872012b5e", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:00.708Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d518b8f6-4ecf-46c8-abc2-286227404974", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:00.901Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "55f21d9c-44a1-4e83-a9b8-b77c0e479a71", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:01.094Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "81cf28ae-8204-4d55-9039-2b1d2506ece8", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:01.278Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "f61522cb-eaa0-4329-8f7f-093f86923dad", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:01.474Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "7fb85916-625b-4ba2-a021-22f92d3943bc", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:01.688Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "f312e8b7-e2d4-4bc8-a53c-881c2c44ded0", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:01.875Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d18bbda3-1536-42e8-b4f4-395b92bc23ca", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:02.065Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "c83acc6f-1e4e-43e2-89e7-c6e594473c46", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:02.257Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "d3ede05c-e189-4cd3-90bd-677ae11a6482", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:02.437Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "db558124-19cc-4f49-ae35-9125df6f583a", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:02.634Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "791a76c6-340e-436c-abe0-b596881d308c", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:02.839Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3a73c5f3-b2f1-469e-9425-345297011c83", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:03.039Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "18ec4526-ba8e-48a4-ad89-470b131a4de6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:03.223Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e893ddf9-0eb0-4e97-a685-8a93ef8560a7", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:03.420Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "998e943e-5fca-4571-923e-3b8115cb8412", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:03.599Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "e40f94da-1c6b-4548-a8f8-d0dd21d43607", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:03.795Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "a4737835-c9b3-4d63-9c07-fe4365aa8720", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:04.002Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "3ef25183-58e9-4774-a614-7bd116e6afc6", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:04.195Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "91e7fe76-cd15-4d26-a5dd-ce0eff177a12", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+{"timestamp": "2026-08-21T13:14:04.383Z", "service": "api-gateway", "level": "INFO", "message": "request", "trace_id": "34e01e96-159d-4d56-b33e-5456905ff28d", "method": "GET", "path": "/request", "status": 200}
+INFO:     172.19.0.1:48862 - "GET /request HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.2:41194 - "GET /metrics HTTP/1.1" 200 OK

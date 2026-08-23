@@ -1,0 +1,400 @@
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:00.425Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c7e2b67e-13fb-4b0d-91ae-e15e0460b03a", "method": "POST", "path": "/admin/fault", "status": 200}
+INFO:     172.19.0.1:39276 - "POST /admin/fault HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:02.694Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "4c5705ee-7292-41ef-af3f-037a21811a8f", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:04.763Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "89282c41-5347-4981-9ee9-00b7abf7b068", "delay_ms": 3000}
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:05.695Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "4c5705ee-7292-41ef-af3f-037a21811a8f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:54474 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:06.781Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "3787d844-bd64-48bd-a8e6-d3815e09fe9f", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:07.764Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "89282c41-5347-4981-9ee9-00b7abf7b068", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:55672 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:08.797Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "58a12edd-97d1-4dd6-aede-9750b39aebe1", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:09.779Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3787d844-bd64-48bd-a8e6-d3815e09fe9f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:55674 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:10.810Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "81686e3f-1e8c-4ea1-bb34-b46e3b76006e", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:11.796Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "58a12edd-97d1-4dd6-aede-9750b39aebe1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:55680 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:12.832Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "013492b6-6278-41fd-adb0-b85264113f30", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:13.812Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "81686e3f-1e8c-4ea1-bb34-b46e3b76006e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:55690 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:14.880Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "44d4913a-0a50-49fd-806a-3a0869113a25", "delay_ms": 3000}
+INFO:     172.19.0.3:34802 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:15.833Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "013492b6-6278-41fd-adb0-b85264113f30", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:55702 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:16.908Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "31b15e3c-1036-4573-821f-b47aba806925", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:17.880Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "44d4913a-0a50-49fd-806a-3a0869113a25", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:33852 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:18.970Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "f9fedf10-02b6-452d-80f6-9fff3a3ea012", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:19.909Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "31b15e3c-1036-4573-821f-b47aba806925", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:33862 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:20.978Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "ed84561c-a007-48e3-afc6-82bb994af570", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:21.972Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f9fedf10-02b6-452d-80f6-9fff3a3ea012", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:33866 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:22.995Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "fb8f680b-a9c4-44ed-beab-03f324d79b70", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:23.979Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ed84561c-a007-48e3-afc6-82bb994af570", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:33874 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:25.061Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "6540bbc6-2b37-427c-afaa-64df7647e20e", "delay_ms": 3000}
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:25.995Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "fb8f680b-a9c4-44ed-beab-03f324d79b70", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:33890 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:27.045Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "5632fa86-0386-481a-b794-4fa8585744cf", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:28.062Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6540bbc6-2b37-427c-afaa-64df7647e20e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:46518 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:29.052Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "a93f3a3d-c639-4ca8-aecc-b0444e7cee63", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:30.045Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5632fa86-0386-481a-b794-4fa8585744cf", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:46522 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:31.065Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "c82abf73-64a1-4ee7-a4ca-fb6e452e3985", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:32.053Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a93f3a3d-c639-4ca8-aecc-b0444e7cee63", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:46528 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:33.077Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "16d2456d-d73b-4b8f-a2d3-a9ff2fda9985", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:34.066Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c82abf73-64a1-4ee7-a4ca-fb6e452e3985", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:46538 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:35.094Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "f62028a1-04d6-4f74-86d6-c44cb1dbb0ec", "delay_ms": 3000}
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:36.077Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "16d2456d-d73b-4b8f-a2d3-a9ff2fda9985", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:46548 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:37.111Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "57c9c072-9fc5-4564-a70f-ab00133bf53b", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:38.095Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f62028a1-04d6-4f74-86d6-c44cb1dbb0ec", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:47528 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:39.138Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "9690a955-94aa-44d7-ab33-2992275590fc", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:40.096Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "57c9c072-9fc5-4564-a70f-ab00133bf53b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:47534 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:41.137Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "0451ea32-21b0-4777-acbf-c7899260e365", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:42.124Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9690a955-94aa-44d7-ab33-2992275590fc", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:47544 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:43.150Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "3534f2de-e299-471e-abec-ba3cea92d3be", "delay_ms": 3000}
+{"timestamp": "2026-08-20T11:19:44.138Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "0451ea32-21b0-4777-acbf-c7899260e365", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:47556 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:45.166Z", "service": "downstream-dep", "level": "WARNING", "message": "injected latency", "trace_id": "1568191f-da2f-4023-951e-5470733535fc", "delay_ms": 3000}
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:45.810Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "81bec292-5332-4282-9410-c14156ffea22", "method": "POST", "path": "/admin/fault", "status": 200}
+INFO:     172.19.0.1:42994 - "POST /admin/fault HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:46.152Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3534f2de-e299-471e-abec-ba3cea92d3be", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:47560 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.185Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "db09c3c8-9d2b-4dd0-8bec-cdcef2a56913", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41592 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.227Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "d906b03c-89f1-4366-baf0-ece92bf63ced", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41600 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.261Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1ad63e09-079f-493a-bba8-211a38cca673", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41608 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.285Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "27456fd2-661e-42ab-92b0-dc2543eb2c7a", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41618 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.313Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "42182122-ecfa-45f8-894c-9d0e779361e3", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41632 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.385Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9ad10f5f-d59a-4786-94c1-4a6a0e1eb63b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41648 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.419Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6d4aa975-8426-4fb8-a08c-24f18f84bd0c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41654 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.446Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9c668b4e-29fa-42b1-bd80-56353a08202b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41670 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.478Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "caf6c5f8-6808-44b5-9404-474385df68e1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41686 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.503Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "470c9906-9a1f-48a0-851b-9fbc4803a0be", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41688 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.529Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1a3da7b8-99bb-4298-a3e3-98261d2fe0e7", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41702 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.601Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "07784437-e9cf-4cdf-8487-1c57a0060cff", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41710 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.634Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "36c5c446-4030-4a6b-b9f3-fcfb176c5792", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41712 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.659Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "8f2ad8e7-9267-488d-bcdd-065b4e1e07d5", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41714 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.691Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "2c5ad417-bfd3-4877-9d74-b3f734d5aad7", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41728 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.716Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "37c7c727-c8aa-43d8-ada3-0561f17ce61b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41732 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.742Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "4d1872d4-67db-4702-aee6-ad0ad0c5ecb9", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41746 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.817Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "20684078-ba1d-405e-92ff-af56aa2b3a64", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41756 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.850Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "d404fc48-9d77-46fb-92fb-6f180eace7b6", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41772 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.879Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "2df7a5ea-3b53-4691-acd0-a5b4df2405af", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41780 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.911Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "00e0fdf2-90eb-486a-a879-fe02bd30908b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41782 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:47.937Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "080edea2-2dca-445a-9650-3b462f838fc9", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41788 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.008Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1c97b306-6546-4b9e-8c5e-dc0be928df2a", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41804 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.034Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "84e5f2bf-962f-4805-a2c1-7da20591f6fc", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41816 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.113Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "b312cc29-36c5-46f8-b883-ce97c25a077f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41828 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.141Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ebe4c17c-eea1-4f61-a596-931ef843b68a", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41842 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.166Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1568191f-da2f-4023-951e-5470733535fc", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41576 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.175Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "55e3095f-1865-4dfc-882c-2bb66d713f27", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41858 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.204Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "276700d1-a6aa-43cc-97ad-49ac9bbe968c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41864 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.232Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "fb2f425a-2b3e-4439-ac05-f8b03daf9c34", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41870 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.259Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "e53a7527-e056-4c13-8dfa-3c766074d4f1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41880 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.333Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9297c74a-3298-4091-a7d1-e3ab284e83e8", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41888 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.363Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "32f72727-8b87-49fa-bfbb-471a45d73fe0", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41896 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.410Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "22d95473-a729-4291-a4ac-ffdee674d2e4", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41900 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.438Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "822a6397-94b0-45eb-91b3-e40072ef3d67", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41912 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.464Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "49ad2e52-6977-415a-9f0c-138b253aebb5", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41916 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.537Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ba7aa586-fdbd-4558-832e-3f0203a6c07e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41932 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.564Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c06e9c8e-6069-476c-a27f-26a02c37cbf1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41944 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.589Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a23084b7-3473-4eb2-958d-a3446e5ed11f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41960 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.628Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "40e21626-066f-4ca1-8e41-eb10b29f3cbd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41972 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.654Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "fa10d860-399d-49b7-91de-4184968fe427", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41974 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.678Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "0226a605-dca8-4eae-96eb-46e0a38e1588", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:41990 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.704Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6ccf7917-da01-4b0a-bedf-26f7688389a9", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42000 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.775Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c659763e-dfc3-4d4c-aec6-b5ad3205c863", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42014 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.801Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "74a51bcc-e863-437b-abda-047dc6469b2f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42022 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.840Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "2ac6a548-181d-44eb-b8dd-274eb8b3ce86", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42026 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.867Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6acf55ee-a1a3-4f7e-afea-1bc4c10244c1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42036 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.894Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "d063e69a-c14b-4c68-9b56-74ea9210ce07", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42052 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.919Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5a53b190-62fe-4057-956b-077f474f1a74", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42062 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:48.992Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6b9f7bff-e1b3-4efe-81eb-6fa5d1c31073", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42074 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.020Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5ef74de0-0068-4c8d-8d02-2df2c912bdde", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42080 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.058Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ae038817-9bc6-43cb-982c-747715ac98d6", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42092 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.085Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "87d1f129-7008-451c-b563-d464db564868", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42098 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.113Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "53b6b492-4e89-4b69-ac58-de73f7e899be", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42102 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.138Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3f1582ce-6acc-4865-904a-2f0a1ab0f681", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42108 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.164Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a3ed0291-6802-40e7-89d6-ac95994da38e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42110 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.192Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "435d0455-f83e-49fd-88c9-09b9bf06be0e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42116 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.276Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "2f9e7006-96b8-4de5-bab5-68863bce1e79", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42128 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.303Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "de2b33db-6c30-4229-a354-e52101a24a84", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42144 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.379Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9a2d7095-cbde-45d0-9462-e4c0a7aea932", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42152 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.406Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "25169e86-640b-49fc-aec2-d7e8a3653504", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42162 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.432Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5e1ba08b-1080-4b43-8e9e-ef33979b79a9", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42164 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.457Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c11fcf7f-34a4-4df0-b700-d39438f15cc7", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42174 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.495Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "052e617b-dc43-46d4-8da5-2b226f8afdb0", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42182 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.522Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "533b252b-fc19-4f67-a0e0-a337ead7407e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42188 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.548Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "7f18a46c-14aa-423c-a7cd-d6e0d816a03b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42204 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.574Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "46a35968-e9ff-4b6d-92bf-672e09706ab8", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42208 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.649Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "02c76e2e-73dc-4ec8-a257-d04d2471a153", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42220 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.724Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "83fffd40-adaa-4586-87a0-1a8ce4f0ee18", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42232 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.773Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "b322f8d4-ba08-468e-bff7-b1b7a965f351", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42238 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.803Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "8b6696cf-a562-45cf-94c7-cfdc248db479", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42250 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.874Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a3fed03d-cc41-4101-b364-fc0d4bacdc31", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42260 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.900Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3aa58a6c-4d3a-49dc-b4bf-be099d37f7dd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42262 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.927Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "c4928fa2-d65c-46b9-8f86-41b1e859e0fd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42278 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.954Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1acbddbc-80aa-476e-9f11-799599f30675", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42286 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:49.996Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9a77a4ea-7dd6-490a-889c-155699812e6b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42292 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.023Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3a4067dd-28b3-43fc-8fa8-40a9462ab8a1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42308 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.051Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "33c94d68-990c-431d-a547-52caba517eda", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42318 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.077Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6c04e998-47fd-4525-a2aa-66a8b409c82c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42328 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.150Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a0cd3fad-40df-4ec7-80f2-6c61fa6650e1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42334 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.181Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3582c833-51c0-40f0-a83f-80d96d981fca", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42350 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.237Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a97a0d39-c757-4fd3-a62b-9d41e67bf301", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42358 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.264Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "217deefe-aa33-4faa-baa2-15791b6d1578", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42370 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.336Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5f434d9d-ba30-416b-9f7f-9b63436ae985", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42372 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.364Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "83e21f9f-5c29-4505-a491-d2ff03f18e8e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42382 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.391Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "84e9a784-a309-42e9-8864-a917b8e5c405", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42396 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.463Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "310fd05e-05a0-4f8a-bcf5-fa95b936affe", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42404 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.503Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ec03e5ba-e71a-4e8d-9c13-a2c2425ffb7e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42408 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.528Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f620e4f7-48c9-4cd7-a6d7-9b057aaa55a5", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42414 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.554Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "30961e72-1f26-4b84-a34a-f3e37238e7ad", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42422 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.578Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "0b5b54a1-239d-4ba3-b4b3-87f7efa7cbbd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42424 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.602Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1ee41666-872b-473c-9b43-230954b58905", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42430 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.627Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "356c7489-5422-424c-a8dd-d89f5bc43991", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42432 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.667Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5e097cfb-9744-4bd6-b6ae-40900923d7e9", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42448 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.694Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "44ba2a4e-e159-43b7-a9e1-ef7c77717ffe", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42464 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.721Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "dbc1d027-ad66-4921-ab36-acc9b653f38c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42472 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.748Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "97eb53ae-3dca-471a-9101-1df73f07c002", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42486 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.775Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "40017ff3-3b6b-4e68-b16d-b7c01563f7ee", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42490 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.801Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "7be4ff1a-bdbf-4af7-89be-3a48ae618152", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42506 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.846Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "e86c1a5c-f012-4171-a285-b2bd5a695927", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42520 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.873Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "7f090a82-f44b-4140-91ea-c84a5ddb0c39", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42536 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.898Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "a583c60e-8586-4795-8f74-427d938291ee", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42548 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.923Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "e06170cf-2348-4124-9ddd-ba82638addc5", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42562 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.948Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "43dd1ba4-9981-4ccc-88b0-0962469ab8d1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42572 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:50.974Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "b1239065-6bf7-4216-8ba8-21e04cd90cd2", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42586 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.056Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6ae0353d-a535-480a-a38c-b67474364a7b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42602 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.081Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "5b2e4b45-77ac-4083-aa81-c456a9631de3", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42608 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.106Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "454a8707-5499-42c3-a21e-71a5b9fe5fc1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42620 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.132Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "4af916f0-c8eb-498a-9320-7326863477bd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42626 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.205Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "b5e226c7-12cb-49bf-b597-5edb1555d5ed", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42628 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.233Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "57b8e824-4b50-434e-8069-d14a0ed5ea99", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42632 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.268Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "b4c9096f-f6cb-4f41-a8a6-9d5d1cf6321f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42644 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.295Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "135a64cc-5236-4da9-9eac-3e66c1ec06b1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42646 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.321Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "af55449f-5368-438c-ad10-4ac0d6fe8411", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42660 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.349Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "142b00da-c467-4274-8e17-fea8e352f939", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42676 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.377Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "383664e0-385f-41e4-8762-ead5106d9c4e", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42692 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.402Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "53bfd17c-bf84-437e-b9fb-eafade4222ed", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42706 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.440Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "64e7fa96-c34d-4cc9-ac14-6b343b9b7e78", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42708 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.468Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1b1dbe93-809e-4288-b4d6-158b8f9911ff", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42720 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.494Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "86566e61-e255-4359-8300-55d9e5fb7d7c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42728 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.520Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "6432e430-f0f1-48e1-932e-c8be7200485c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42736 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.547Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "21c0e089-e622-4618-9c57-3627e74aa82a", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42750 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.572Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "69b0f6e2-3104-4c44-a0b1-61ea1fde1dc1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42764 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.609Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "31917fae-e6fe-4c75-83b8-e012145dda32", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42780 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.634Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9f3c3017-6898-46d9-99b1-9d4f742461fd", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42782 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.707Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "64aa8e0c-49e9-43f0-b890-2c9538ec2396", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42792 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.732Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "371f594a-58cd-4f61-a338-5e0302c0c02c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42808 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.757Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9732e3ae-7124-476b-b8fb-c5823c4f5b0d", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42820 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.782Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1eaeff60-bc5d-4950-aabc-a5b936c02df0", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42824 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.822Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "4179873d-bca5-43e9-aa91-48ecaacda408", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42834 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.850Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "d8a83976-a3cb-4f01-b719-dce9818b291b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42840 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.875Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "37c5e82b-4bbf-4448-8c2d-0418614856d8", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42850 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.901Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "518d9292-1ae1-4e27-b626-fefefb72093f", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42858 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.927Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f695905d-838b-44c8-90a6-bfa70664eeb1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42872 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:51.954Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "16f33083-8660-4cff-bf4d-612f3b2c92b8", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42880 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.040Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "aef379d1-a918-4247-a7ac-2924115b2f18", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42894 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.068Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "2dfcd382-6578-4681-98fa-d8152de463f2", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42908 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.098Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "18c1cd07-64d9-421f-8505-35b3f5bdb17c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42924 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.126Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f6ccfa20-a04c-44b3-97c7-8f09d9a1868c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42936 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.156Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "fc6c2c7d-c7e6-4c47-8e53-c5c337fed757", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42950 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.186Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9fbbdf50-8a76-48c9-9a01-4aee054736d7", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42966 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.231Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "3eb681e9-1ed1-4a59-bce2-f115cc123c49", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42968 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.260Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "781700fa-6f55-4a08-a517-acea60715ce1", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42982 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.287Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f51ed6c2-1432-4757-a9a5-3bb30d55a05b", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:42996 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.319Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "102585b2-8a5c-42fa-b24a-a26998761319", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43008 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.348Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "35ef99d6-dbe4-4a47-91f0-0aa928185f75", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43016 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.377Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "1155befc-082b-4221-9176-7b8ece852652", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43028 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.451Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "8f29fb98-569e-4266-b7f2-282317080271", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43042 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.478Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "06a4707d-86ba-4dd9-acef-d16f540126dc", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43050 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.505Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "f6301ecd-7471-4042-a502-75c8ce2846f4", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43064 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.530Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "ad0965c0-ee46-4ab9-818a-a003c31bbec8", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43070 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.555Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "4397297c-62f3-45b6-b900-b94cd76ceffa", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43078 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.580Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "9c03ebd9-2c8e-4b8d-a14d-46a3da7d1d47", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43090 - "GET /data HTTP/1.1" 200 OK
+{"timestamp": "2026-08-20T11:19:52.624Z", "service": "downstream-dep", "level": "INFO", "message": "request", "trace_id": "7b001dd8-679f-457a-b869-3a3c2fe1936c", "method": "GET", "path": "/data", "status": 200}
+INFO:     172.19.0.4:43092 - "GET /data HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     172.19.0.3:60764 - "GET /metrics HTTP/1.1" 200 OK
