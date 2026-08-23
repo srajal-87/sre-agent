@@ -27,7 +27,7 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 | 3 | Telemetry (Prometheus)   | Complete    |
 | 4 | Reasoning Loop (ReAct)   | Not started |
 | 5 | Orchestration (LangGraph)| Not started |
-| 6 | Tool/Action Layer        | Not started |
+| 6 | Tool/Action Layer        | In progress |
 | 7 | Storage (Supabase)       | Complete    |
 | 8 | Audit Trail (LangSmith)  | Not started |
 | 9 | Evaluation Harness       | Not started |
@@ -37,8 +37,10 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 
 ## Current Phase
 
-**Phase 2 — Storage (Supabase) + API shell (FastAPI):** Complete
-**Next:** Phase 3 — Agent core: Reasoning Loop (ReAct) + Orchestration (LangGraph) + Tool/Action Layer
+**Phase 3 — Agent core.** Sub-phase 3.1 (the three read-only tools: `query_metrics`,
+`query_logs`, `query_deploy_history`) is **complete**.
+**Next:** sub-phase 3.2 — Reasoning Loop (ReAct) + Orchestration (LangGraph).
+Then 3.3 — write tools + policy gate.
 
 Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Phase 3 = agent core).
 
@@ -46,7 +48,23 @@ Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Ph
 
 - All victim services are Python (FastAPI), containerized, exposing `/health` and `/metrics` endpoints.
 - All services write structured JSON logs to stdout (fields: timestamp, service, level, message, trace_id).
-- Agent tools are defined as Pydantic models in `agent/tools/`.
+- Agent tools are defined as Pydantic models in `agent/tools/`, registered in
+  `agent/tools/__init__.py` (`TOOLS`) and invoked via `run_tool(name, arguments)`.
+- **A tool never raises for an expected failure.** Backend down, unknown metric name,
+  malformed arguments — all return `ok=False` with a readable `error`, because the
+  caller is an LLM and an exception kills the graph. Pure helpers inside a tool still
+  raise; only the tool boundary converts. This deliberately diverges from the
+  `ValueError`/`RuntimeError` convention used in human-facing code.
+- **Empty is not failure.** `ok=True` with zero rows is a first-class answer — "no
+  deploys in the window" excludes a code change, and flat traffic *is* the evidence
+  under a timeout fault.
+- Every tool result carries `source` + `query` + `window` (the literal query issued and
+  the range it covered), which is what makes a cited diagnosis mechanically possible.
+- Tool-facing strings (summaries, notes, errors) are **ASCII** — they get printed to a
+  Windows console by `agent/tools/probe.py`.
+- Collaborators (HTTP fetch, Docker client, sessionmaker, clock) are injected as
+  keyword arguments with real defaults — no mocking library, no `pytest-asyncio`;
+  coroutines are driven with `asyncio.run(...)`.
 - The policy table in `agent/policy/` is always deterministic — never LLM-evaluated.
 - Ground truth for every injected fault is logged by the injector to a known location and to Postgres.
 - The fault injector controls faults via admin endpoints on victim services (e.g., `POST /admin/fault`).
@@ -60,11 +78,13 @@ sre-agent/
 │   ├── data-service/          # Service 2: config-based faults
 │   └── downstream-dep/        # Service 3: latency/memory faults
 ├── agent/                     # The SRE agent
+│   ├── config.py              # PROMETHEUS_URL, COMPOSE_PROJECT, LOG_SERVICES
 │   ├── graph/                 # LangGraph nodes, edges, state schema
-│   ├── tools/                 # Tool definitions (Pydantic models)
+│   ├── tools/                 # base.py, metrics.py, logs.py, deploys.py, probe.py
 │   ├── policy/                # Blast-radius/confidence policy table
-│   └── prompts/               # System prompts, investigation templates
-├── injector/                  # Fault injection CLI + ground-truth logger
+│   ├── prompts/               # System prompts, investigation templates
+│   └── tests/                 # Unit + opt-in live smoke; fixtures/ is captured output
+├── injector/                  # Fault injection CLI, traffic generator, deploy seeder
 ├── eval/                      # Evaluation harness + scenario definitions
 │   └── scenarios/             # YAML/JSON scenario files
 ├── api/                       # FastAPI service wrapping the agent (agent-api)
@@ -83,8 +103,19 @@ sre-agent/
 # Start all services locally
 docker-compose up --build
 
-# Inject a fault (example)
+# Generate traffic (metrics only move when requests flow)
+python injector/traffic.py --target api-gateway --rps 5 --duration 300
+
+# Seed the deploy ledger with uncorrelated noise
+python injector/seed_deploys.py --noise 5
+
+# Inject a fault (example). --deploy / --no-deploy forces whether a correlated
+# deploy is written first; omitting it decides at random.
 python injector/inject.py --fault timeout --target api-gateway --duration 60
+
+# Run one tool by hand and print what the agent would see
+python -m agent.tools.probe --list
+python -m agent.tools.probe --tool query_logs --args '{"levels":["ERROR"],"lookback_minutes":5}'
 
 # Trigger an investigation
 curl -X POST http://localhost:8000/investigate -H "Content-Type: application/json" -d '{"alerts": [...]}'
@@ -99,12 +130,22 @@ python eval/run_eval.py
   raises an uncaught `httpx.HTTPStatusError`, so the gateway returns a 500 via Starlette's error
   middleware — bypassing the metrics middleware (so it is never counted in `http_requests_total`)
   and logging a stack trace instead of a structured error. Fix: catch it in `/request` → 502 +
-  structured log + metric.
+  structured log + metric. **This is now captured and tested**: during a `bad_config` fault the
+  gateway emits zero structured ERROR lines and zero 500s, only raw tracebacks, so `query_logs`'
+  `unparsed_count` is its only signal (`agent/tests/test_logs_parse.py`). Fixing the gateway will
+  fail those two tests by design — update them and this entry together.
 - **`agent-api` exposes no `/metrics`** and has no Prometheus scrape target in `infra/prometheus.yml`.
 - **No Alertmanager.** `infra/prometheus.yml` has no alerting rules and no Alertmanager container,
   so `POST /investigate` is exercised with fixture payloads rather than live alerts.
 - **Injector does not dual-write ground truth to Postgres.** The `ground_truth_*` columns on
-  `incidents` exist but stay null; ground truth lives only in `injector/ground_truth.jsonl`.
+  `incidents` exist but stay null; ground truth lives only in `injector/ground_truth.jsonl`
+  (which does now also record `correlated_deploy`). Needed before Phase 5.
+- **`agent-api` mounts `/var/run/docker.sock`**, which `query_logs` needs to read container
+  stdout. This is root-equivalent host access: acceptable for a local demo stack, and the
+  Phase 6 `restart_service` tool needs it too, but it will not work on Fly.io.
+- **Prometheus' TSDB is ephemeral** — no volume is mounted at `/prometheus`, so all history
+  dies on `docker compose down`. An empty `query_metrics` result after a restart means "no
+  retained samples", not "no traffic".
 
 ---
 

@@ -6,46 +6,86 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
-**Date:** Day 8 (Phase 2 — Storage + API shell)
+**Date:** Day 9 (Phase 3 — sub-phase 3.1: read-only investigation tools)
 
 **What was done:**
-- **Supabase project created** (personal org, not Zenisth AI): ref `usfekcxmnqkhtembnlqk`, region `ap-south-1`, Postgres 17.6, `ACTIVE_HEALTHY`. Created via the **Management API**, not MCP — the in-session MCP server only sees the Zenisth AI org.
-- **Schema applied** from `supabase/migrations/0001_incidents_investigations.sql`: `incidents` (14 cols, incl. nullable `ground_truth_*`) and `investigations` (15 cols), FK `on delete cascade`, CHECK constraints on both `status` columns, `created_at desc` + `group_key` / `service` / `incident_id` indexes, RLS enabled with **no policies**.
-- **`api/` service (`agent-api`) built via TDD**, mirroring the victim-service layout (own `Dockerfile`, `requirements.txt`, `pytest.ini`, verbatim copy of `app/logging.py`):
-  - `GET /health`
-  - `POST /investigate` — Alertmanager webhook → incident row + `status='pending'` investigation stub in one transaction → `201 {incident_id, investigation_id, status}`
-  - `GET /investigations/{id}` — the row; unknown id → `404 {"error": "investigation not found"}`; non-UUID → `422`
-  - `app/{config,models,db,schemas,repository}.py` — `os.getenv` config, SQLAlchemy 2.x async ORM mirroring the migration, lazily-built engine + sessionmaker (so imports work without a `DATABASE_URL`), Pydantic v2 camelCase webhook schemas, thin `IncidentRepository`.
-- **Verified end-to-end against real Supabase**: the integration test passes, and `docker compose up -d --build` brings up all five containers — `agent-api` logs `"database pool ready"` at startup, `POST /investigate` → 201, `GET /investigations/{id}` → the pending stub, and the Phase 1 request chain still returns 200. Rows confirmed via a Management API `select`.
-- Docs updated: `.env.example` (pooler DSN + the IPv6 warning), `README.md` (Phases 1–2 checked), `CLAUDE.md` (component table, current phase, tech-debt list, `supabase/` in the layout), `docs/decisions.md` (Phase 2 entry).
+
+Built the three read-only tools the ReAct loop will call, via TDD, one step at a time. The governing goal was that **each tool is individually exercisable against the live stack during a real injected fault before the agent ever calls one** — and that was done, for all four fault types.
+
+- **`agent/` package scaffold** — `config.py` (`PROMETHEUS_URL`, `COMPOSE_PROJECT`, `LOG_SERVICES`, reused `DATABASE_URL`), own `pytest.ini` + `requirements*.txt`, pinned to the same versions as `api/`.
+- **Packaging rewired** — `agent-api` now builds from a **root context** (`build: {context: ., dockerfile: api/Dockerfile}`) so the image carries both `api/` and `agent/`. A new root `.dockerignore` is mandatory, not optional. `PROMETHEUS_URL`, `COMPOSE_PROJECT` and the `/var/run/docker.sock` mount added to the service.
+- **`agent/tools/base.py`** — `utc_now`, `TimeWindow` (UTC-normalising, `unix_start`/`unix_end` as ints), `ToolResult` envelope, `failure()`.
+- **`injector/traffic.py`** — sequential, keep-alive load generator. Metrics don't move without traffic.
+- **`query_metrics`** — `KNOWN_METRICS` catalogue + PromQL builder + `query_range` parsing (NaN coercion, capping, stats) + live wiring.
+- **`query_logs`** — container stdout over the Docker API, resolved by compose label; line parsing, filters, aggregate-first counting.
+- **`query_deploy_history`** — `0002_deploys.sql`, `DeployRepository`, per-record `minutes_before_reference`.
+- **`injector/seed_deploys.py`** — noise deploys; **`injector/inject.py`** now writes a *correlated* deploy before enabling a fault (p=0.7) and records the outcome in ground truth.
+- **`agent/tools/__init__.py`** registry + drift test + **`agent/tools/probe.py`** (`python -m agent.tools.probe`).
+- **`agent/tests/test_smoke_live.py`** — opt-in via `SRE_AGENT_LIVE`, invariants only.
 
 **Current state:**
-- Phase 2 complete and **committed** (Phase 1 was also committed at the start of this run; `main` is clean).
-- Tests: **api 13 passed, 1 skipped** (the integration test skips without `DATABASE_URL`); Phase 1 regression **36 passed** (15 + 8 + 9 + 4).
-- `.env` exists at the repo root (gitignored) with the working `DATABASE_URL`.
-- The stack is currently **running** in Docker (all five containers). `docker compose down` if not needed.
-- A couple of throwaway incident rows from manual verification are in the `incidents` table; delete them whenever.
+
+- Tests: **agent 171 passed, 20 skipped** (the live suite skips without `SRE_AGENT_LIVE`); **injector 45**; **api 13 passed, 1 skipped** (14 with `DATABASE_URL`); Phase 1 regression **36** unchanged.
+- Live smoke: `SRE_AGENT_LIVE=1 … pytest tests/test_smoke_live.py` → **20 passed**.
+- Rehearsal run for all four faults; each produces correct, distinguishable evidence (see below).
+- `deploys` table created in Supabase (migration `0002` applied), seeded with noise deploys plus correlated ones from injections.
+- The stack is currently **running** in Docker with no faults active. `docker compose down` if not needed.
 
 **Blockers:** None.
 
-**Security follow-up (outstanding):**
-- The Supabase PAT `sbp_75b6…7da` has been pasted into two session transcripts. **Revoke it** at https://supabase.com/dashboard/account/tokens and issue a fresh one. The DB password is likewise in the transcript and in `.env` — rotate it in the dashboard if you want it clean, and update `.env`.
+**Important environment note:** the `DATABASE_URL` must be the Supavisor **session pooler** form with the async driver:
+`postgresql+asyncpg://postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
+A `postgresql://…@db.<ref>.supabase.co:5432` DSN fails twice over — no `+asyncpg` (SQLAlchemy reaches for psycopg2, which is not installed) and `db.<ref>` resolves **IPv6-only**, unreachable from Docker Desktop on Windows. `.env` has been corrected.
 
-**Known tech debt:** see the list in `CLAUDE.md` (api-gateway 502 handling, no `/metrics` on `agent-api`, no Alertmanager, injector doesn't dual-write ground truth to Postgres).
+**Security follow-up (still outstanding from Day 8):**
+- Revoke the Supabase PAT `sbp_75b6…7da` at https://supabase.com/dashboard/account/tokens and issue a fresh one; rotate the DB password if you want it clean.
+- **New:** `docker-compose.yml` mounts `/var/run/docker.sock` into `agent-api`. This is **root-equivalent host access** — fine for a local demo stack, required by the Phase 6 `restart_service` tool, but it will not work on Fly.io and must be called out in any writeup.
+
+**Rehearsal results (all four faults, live):**
+
+| Fault | `query_metrics` | `query_logs` |
+|---|---|---|
+| `latency` (downstream-dep) | p99 rose 0.032 → 4.94s | 16x `injected latency` + 15x `upstream timeout` |
+| `timeout` (api-gateway) | `upstream_timeouts_total` rate 0 → 0.446 | 33x `upstream timeout calling data-service` |
+| `bad_config` (data-service) | `config_errors_total` rate 0 → 2.41 | 159x `configuration error: invalid downstream target` |
+| `memory` (downstream-dep) | `downstream_memory_bytes` 0 → 2.5e+08 | nothing — the gauge is its only observable |
+
+**Known tech debt:** see `CLAUDE.md`. Note that the api-gateway 5xx gap is now *captured and tested*: during `bad_config` the gateway logs zero structured ERROR lines and zero 500s, only raw tracebacks, so `unparsed_count` is its only signal (`agent/tests/test_logs_parse.py`). Fixing the gateway will fail those two tests by design — update them and the tech-debt list together.
 
 ## Next Session
 
-**Options / pick-up points:**
-1. **(Recommended) Phase 3 — Agent core:** the ReAct reasoning loop + LangGraph orchestration + tool layer. `investigations` rows currently stay `pending` forever; Phase 3's job is to fill them in (`diagnosis`, `confidence`, `evidence`, `steps`, `cost_usd`, `latency_ms`).
-2. Optional small cycles: the api-gateway 502 fix, `/metrics` on `agent-api` + its Prometheus scrape target, or the injector → Postgres ground-truth dual-write (which makes the eval harness possible later).
+**Pick up at: sub-phase 3.2 — the ReAct reasoning loop + LangGraph orchestration.**
 
-**To run the stack:** `docker compose up -d --build` (all five services; `agent-api` now has a Dockerfile and reads `DATABASE_URL` from `.env`). Inject faults with `python injector/inject.py --fault <t> --target <svc> [--params '{...}'] [--duration N | --clear]`. Prometheus UI at `localhost:9090`, agent-api at `localhost:8000`.
+The tool layer is ready to plug in: `TOOLS[name]["input_model"].model_json_schema()` is already the exact shape the Anthropic tool-use API wants, and `run_tool(name, arguments_dict)` validates raw model arguments and returns a `ToolResult` — bad arguments and unknown tool names come back as `ok=False` observations rather than exceptions, so nothing the model sends can kill the graph. `ToolResult.model_dump(mode="json")` drops straight into the `investigations.evidence` jsonb column; note that `investigations.steps` is an `int` *count*, not a transcript, so any step-by-step trail must nest inside `evidence`.
 
-**To run tests:** from each of `services/*`, `injector/`, and `api/`, run `e:/sre-agent/.venv/Scripts/python -m pytest`. To include the DB integration test: `DATABASE_URL=... e:/sre-agent/.venv/Scripts/python -m pytest` from `api/`.
+**Still deferred (explicitly out of scope for 3.1):**
+- Raw-PromQL escape hatch, gated by an allow-list.
+- Write tools + policy gate (3.3), LangSmith tracing (Phase 4).
+- `agent-api` `/metrics` + Alertmanager (existing tech debt).
+- The injector's `ground_truth_*` dual-write to **Postgres** — ground truth still lives only in `injector/ground_truth.jsonl`, though it now also records `correlated_deploy`. Needed before Phase 5.
 
-**Manual API check:**
+**To run the stack:** `docker compose up -d --build`. Prometheus at `localhost:9090`, agent-api at `localhost:8000`.
+
+**To run tests:** from each of `services/*`, `injector/`, `api/`, and `agent/`: `e:/sre-agent/.venv/Scripts/python -m pytest`.
+
+**To exercise a tool by hand:**
 ```bash
-curl -X POST http://localhost:8000/investigate -H "Content-Type: application/json" \
-     -d @api/tests/fixtures/alertmanager_firing.json
-curl http://localhost:8000/investigations/<investigation_id>
+docker compose up -d
+python injector/traffic.py --target api-gateway --rps 5 --duration 300 &
+python injector/seed_deploys.py --noise 5
+python injector/inject.py --fault latency --target downstream-dep \
+       --params '{"delay_ms": 3000}' --duration 120 --deploy
+
+# during the fault window (PROMETHEUS_URL=http://localhost:9090 from the host):
+python -m agent.tools.probe --list
+python -m agent.tools.probe --tool query_metrics --args '{"metric":"http_request_duration_seconds","service":"downstream-dep","path":"/data","aggregation":"p99"}'
+python -m agent.tools.probe --tool query_logs --args '{"levels":["ERROR","WARNING"],"lookback_minutes":5}'
+python -m agent.tools.probe --tool query_deploy_history --args '{"lookback_minutes":120}'
+```
+
+**To run the live smoke suite:**
+```bash
+cd agent
+SRE_AGENT_LIVE=1 PROMETHEUS_URL=http://localhost:9090 DATABASE_URL=... \
+  e:/sre-agent/.venv/Scripts/python -m pytest tests/test_smoke_live.py
 ```
