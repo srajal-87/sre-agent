@@ -25,8 +25,8 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 | 1 | Victim System            | Complete    |
 | 2 | Fault Injector           | Complete    |
 | 3 | Telemetry (Prometheus)   | Complete    |
-| 4 | Reasoning Loop (ReAct)   | Not started |
-| 5 | Orchestration (LangGraph)| Not started |
+| 4 | Reasoning Loop (ReAct)   | Built, live rehearsal pending |
+| 5 | Orchestration (LangGraph)| Built, live rehearsal pending |
 | 6 | Tool/Action Layer        | In progress |
 | 7 | Storage (Supabase)       | Complete    |
 | 8 | Audit Trail (LangSmith)  | Not started |
@@ -38,9 +38,11 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 ## Current Phase
 
 **Phase 3 — Agent core.** Sub-phase 3.1 (the three read-only tools: `query_metrics`,
-`query_logs`, `query_deploy_history`) is **complete**.
-**Next:** sub-phase 3.2 — Reasoning Loop (ReAct) + Orchestration (LangGraph).
-Then 3.3 — write tools + policy gate.
+`query_logs`, `query_deploy_history`) is **complete**. Sub-phase 3.2 (the ReAct loop and
+the LangGraph orchestration, in `agent/graph/`) is **built and fully tested offline but has
+never made a real API call** — the live four-fault rehearsal is the next thing to do, and
+until it passes the loop is unproven.
+**Then:** sub-phase 3.3 — write tools + policy gate.
 
 Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Phase 3 = agent core).
 
@@ -65,6 +67,21 @@ Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Ph
 - Collaborators (HTTP fetch, Docker client, sessionmaker, clock) are injected as
   keyword arguments with real defaults — no mocking library, no `pytest-asyncio`;
   coroutines are driven with `asyncio.run(...)`.
+- **The graph's own control tool (`update_hypothesis`) never goes in `TOOLS`.** That registry
+  means "the read-only investigation surface" — it is what `probe.py` offers and what the
+  drift test guards. The graph owns its control tool in `agent/graph/hypothesis.py` and
+  merges it into the tool list it sends the model.
+- **Every requested tool call produces exactly one evidence entry.** The model's assistant
+  turn is replayed verbatim and the API rejects a `tool_use` with no matching `tool_result`,
+  so a call the executor declines (duplicate, over the per-turn cap) gets a synthetic result
+  saying why. Declining is not dropping.
+- **The confidence in a report is validated, not reported.** `decide` caps it deterministically
+  when a citation does not resolve to a `query` some tool actually issued, or when there are
+  no citations at all. The graph never treats the model's number as final.
+- **Nothing per-run goes in the system prompt** (`agent/prompts/system.py`) — no timestamp, no
+  alert detail, no host URL. Caching is a prefix match over `tools` → `system` → `messages`, so
+  one varying byte there invalidates the cache on every call. Per-run values go in the first
+  user message.
 - The policy table in `agent/policy/` is always deterministic — never LLM-evaluated.
 - Ground truth for every injected fault is logged by the injector to a known location and to Postgres.
 - The fault injector controls faults via admin endpoints on victim services (e.g., `POST /admin/fault`).
@@ -117,7 +134,12 @@ python injector/inject.py --fault timeout --target api-gateway --duration 60
 python -m agent.tools.probe --list
 python -m agent.tools.probe --tool query_logs --args '{"levels":["ERROR"],"lookback_minutes":5}'
 
-# Trigger an investigation
+# Run one investigation by hand and print what the agent concluded
+# (exit codes: 0 = completed, 1 = the investigation failed, 2 = bad usage)
+python -m agent.graph.run --alert eval/scenarios/gateway-timeout.json
+python -m agent.graph.run --alert eval/scenarios/downstream-memory.json --json
+
+# Record an incident (the graph is not wired into this endpoint yet)
 curl -X POST http://localhost:8000/investigate -H "Content-Type: application/json" -d '{"alerts": [...]}'
 
 # Run evaluation suite
@@ -134,6 +156,16 @@ python eval/run_eval.py
   gateway emits zero structured ERROR lines and zero 500s, only raw tracebacks, so `query_logs`'
   `unparsed_count` is its only signal (`agent/tests/test_logs_parse.py`). Fixing the gateway will
   fail those two tests by design — update them and this entry together.
+- **The graph is not wired into `POST /investigate`.** The endpoint still only opens a
+  `pending` stub; `agent/graph/` is reachable from the CLI (`python -m agent.graph.run`) and
+  nowhere else. `finalize` deliberately returns a pure `InvestigationReport` and persists
+  nothing — the caller is meant to write it — which is what keeps every graph test free of a
+  database.
+- **The opening sweep's metric and log calls are anchored to *now*, not to `reference_time`.**
+  Only `query_deploy_history` uses the frozen incident time. That is right during a live fault
+  (anchoring to the alert's start would cut off the most recent minutes, where an ongoing fault
+  is most visible) but it means replaying an hours-old incident reads the wrong window. The fix
+  is passing `since`/`until` on those calls.
 - **`agent-api` exposes no `/metrics`** and has no Prometheus scrape target in `infra/prometheus.yml`.
 - **No Alertmanager.** `infra/prometheus.yml` has no alerting rules and no Alertmanager container,
   so `POST /investigate` is exercised with fixture payloads rather than live alerts.

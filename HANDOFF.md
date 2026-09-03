@@ -6,82 +6,161 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
-**Date:** Day 9 (Phase 3 — sub-phase 3.1: read-only investigation tools)
+**Date:** Day 10 (Phase 3 — sub-phase 3.2: ReAct reasoning loop + LangGraph orchestration)
 
 **What was done:**
 
-Built the three read-only tools the ReAct loop will call, via TDD, one step at a time. The governing goal was that **each tool is individually exercisable against the live stack during a real injected fault before the agent ever calls one** — and that was done, for all four fault types.
+Built the consumer of the 3.1 tool layer: a LangGraph state machine that takes an alert,
+drives the three read tools in a ReAct loop, and produces a diagnosis with a confidence
+score and citations that point at real queries. Built via TDD, one step at a time, from
+the plan in `~/.claude/plans/read-claude-md-and-handoff-md-rosy-pony.md`.
 
-- **`agent/` package scaffold** — `config.py` (`PROMETHEUS_URL`, `COMPOSE_PROJECT`, `LOG_SERVICES`, reused `DATABASE_URL`), own `pytest.ini` + `requirements*.txt`, pinned to the same versions as `api/`.
-- **Packaging rewired** — `agent-api` now builds from a **root context** (`build: {context: ., dockerfile: api/Dockerfile}`) so the image carries both `api/` and `agent/`. A new root `.dockerignore` is mandatory, not optional. `PROMETHEUS_URL`, `COMPOSE_PROJECT` and the `/var/run/docker.sock` mount added to the service.
-- **`agent/tools/base.py`** — `utc_now`, `TimeWindow` (UTC-normalising, `unix_start`/`unix_end` as ints), `ToolResult` envelope, `failure()`.
-- **`injector/traffic.py`** — sequential, keep-alive load generator. Metrics don't move without traffic.
-- **`query_metrics`** — `KNOWN_METRICS` catalogue + PromQL builder + `query_range` parsing (NaN coercion, capping, stats) + live wiring.
-- **`query_logs`** — container stdout over the Docker API, resolved by compose label; line parsing, filters, aggregate-first counting.
-- **`query_deploy_history`** — `0002_deploys.sql`, `DeployRepository`, per-record `minutes_before_reference`.
-- **`injector/seed_deploys.py`** — noise deploys; **`injector/inject.py`** now writes a *correlated* deploy before enabling a fault (p=0.7) and records the outcome in ground truth.
-- **`agent/tools/__init__.py`** registry + drift test + **`agent/tools/probe.py`** (`python -m agent.tools.probe`).
-- **`agent/tests/test_smoke_live.py`** — opt-in via `SRE_AGENT_LIVE`, invariants only.
+```
+START -> gather_evidence -> reason -> decide -+-> gather_evidence
+          (deterministic)   (the one   (pure) |
+                            LLM call)         +-> finalize -> END
+```
+
+Twelve steps, each its own test-then-implement cycle:
+
+- **`agent/graph/state.py`** — `InvestigationState` (TypedDict + `operator.add` reducers) with
+  Pydantic values: `AlertSummary`, `Hypothesis`, `ToolCall`, `EvidenceEntry`, `StepRecord`,
+  `AssistantTurn`, `InvestigationReport`, plus `initial_state()`.
+- **`agent/graph/hypothesis.py`** — the synthetic `update_hypothesis` tool, deliberately
+  **not** in `TOOLS`.
+- **`agent/prompts/system.py`** — the cache-stable system prompt (~1050 tokens).
+- **`agent/graph/render.py`** — webhook -> `AlertSummary`, the alert brief, summary-first
+  evidence rendering.
+- **`agent/graph/messages.py`** — the message list, rebuilt from state each turn.
+- **`agent/graph/llm.py`** — `call_model` behind an injectable client, `tool_definitions()`
+  with the cache breakpoint, `estimate_cost()`.
+- **`agent/graph/nodes.py`** — `opening_sweep`, `gather_evidence`, `reason`, `decide`, `route`,
+  `finalize`.
+- **`agent/graph/__init__.py`** — `build_graph()`, `investigate()`, `RECURSION_LIMIT`.
+- **`agent/graph/run.py`** — the CLI, sibling of `agent/tools/probe.py`.
+- **`eval/scenarios/*.json`** — four Alertmanager payloads, one per injectable fault.
+- **`agent/config.py`** — `AGENT_MODEL`, `AGENT_MAX_TOKENS`, `AGENT_EFFORT`,
+  `MAX_TOOL_CALLS_PER_ITERATION`, and the seven stop-condition constants.
 
 **Current state:**
 
-- Tests: **agent 171 passed, 20 skipped** (the live suite skips without `SRE_AGENT_LIVE`); **injector 45**; **api 13 passed, 1 skipped** (14 with `DATABASE_URL`); Phase 1 regression **36** unchanged.
-- Live smoke: `SRE_AGENT_LIVE=1 … pytest tests/test_smoke_live.py` → **20 passed**.
-- Rehearsal run for all four faults; each produces correct, distinguishable evidence (see below).
-- `deploys` table created in Supabase (migration `0002` applied), seeded with noise deploys plus correlated ones from injections.
-- The stack is currently **running** in Docker with no faults active. `docker compose down` if not needed.
+- Tests: **agent 449 passed, 20 skipped** (was 171 + 20; **278 new**), **injector 45**,
+  **api 13 passed, 1 skipped**. `services/*` not re-run this session (untouched).
+- Every new test runs offline: no API key, no Docker, no Postgres, no mocking library.
+  The seams are a `FakeModel` (a callable returning scripted `tool_use` turns) and a fake
+  `run_tool`.
+- New pins in `agent/requirements.txt`: **`anthropic==1.0.0`**, **`langgraph==1.2.11`**
+  (pulling `langchain-core==1.6.0`, `langsmith==0.11.1`). Installed in `.venv`.
+  `api/Dockerfile` already installs `agent/requirements.txt`, so `docker compose build`
+  picks them up.
+- **Nothing is committed.** All of 3.2 is in the working tree. Twelve commits' worth of
+  work, one per step; suggested messages are in the session transcript, or squash as
+  `feat(agent): add the LangGraph investigation loop`.
+- **The live rehearsal has NOT been run.** The graph has never made a real API call or run
+  against the live stack. That is the first thing the next session should do.
 
-**Blockers:** None.
+**Blockers:** None. The one open decision is whether to enable server-side refusal
+fallbacks (see below).
 
-**Important environment note:** the `DATABASE_URL` must be the Supavisor **session pooler** form with the async driver:
-`postgresql+asyncpg://postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
-A `postgresql://…@db.<ref>.supabase.co:5432` DSN fails twice over — no `+asyncpg` (SQLAlchemy reaches for psycopg2, which is not installed) and `db.<ref>` resolves **IPv6-only**, unreachable from Docker Desktop on Windows. `.env` has been corrected.
+**Environment note (unchanged):** `DATABASE_URL` must be the Supavisor **session pooler**
+DSN with the async driver — see the Day 9 entry in git history for why. `.env` already has
+`ANTHROPIC_API_KEY` set.
 
-**Security follow-up (still outstanding from Day 8):**
-- Revoke the Supabase PAT `sbp_75b6…7da` at https://supabase.com/dashboard/account/tokens and issue a fresh one; rotate the DB password if you want it clean.
-- **New:** `docker-compose.yml` mounts `/var/run/docker.sock` into `agent-api`. This is **root-equivalent host access** — fine for a local demo stack, required by the Phase 6 `restart_service` tool, but it will not work on Fly.io and must be called out in any writeup.
+### Design decisions worth knowing before touching this code
 
-**Rehearsal results (all four faults, live):**
-
-| Fault | `query_metrics` | `query_logs` |
-|---|---|---|
-| `latency` (downstream-dep) | p99 rose 0.032 → 4.94s | 16x `injected latency` + 15x `upstream timeout` |
-| `timeout` (api-gateway) | `upstream_timeouts_total` rate 0 → 0.446 | 33x `upstream timeout calling data-service` |
-| `bad_config` (data-service) | `config_errors_total` rate 0 → 2.41 | 159x `configuration error: invalid downstream target` |
-| `memory` (downstream-dep) | `downstream_memory_bytes` 0 → 2.5e+08 | nothing — the gauge is its only observable |
-
-**Known tech debt:** see `CLAUDE.md`. Note that the api-gateway 5xx gap is now *captured and tested*: during `bad_config` the gateway logs zero structured ERROR lines and zero 500s, only raw tracebacks, so `unparsed_count` is its only signal (`agent/tests/test_logs_parse.py`). Fixing the gateway will fail those two tests by design — update them and the tech-debt list together.
+- **`update_hypothesis` is not in `TOOLS`.** The registry means "the read-only investigation
+  surface"; it is what `probe.py` offers and what the drift alarm guards. The graph owns its
+  own control tool and merges it into the tool list.
+- **Every requested call produces exactly one evidence entry.** The model's assistant turn is
+  replayed verbatim, and the API rejects a `tool_use` with no matching `tool_result` — so a
+  call the executor declines (duplicate, or over the 3-per-turn cap) still gets an entry
+  carrying a synthetic result that says why. Dropping one is a 400 that loses the run.
+- **Messages are rebuilt from state each turn**, not accumulated, so older evidence can
+  collapse to its summary line. The cache breakpoint is on the last tool definition, so the
+  cached prefix is tools + system; messages were never cached anyway.
+- **Thinking blocks are replayed verbatim on the latest assistant turn only** (the API
+  requires it, signature included) and stripped from earlier turns.
+- **`decide` caps confidence at `UNCITED_CONFIDENCE_CAP` (0.6)** when a citation does not
+  resolve to a query some tool actually issued — *and* when there are no citations at all,
+  which the plan did not specify but which is otherwise a cheaper route to a high score than
+  citing badly. `confident` additionally requires >=2 distinct tools to have returned
+  `ok=True`.
+- **The graph does not touch Postgres.** `finalize` returns a pure `InvestigationReport`; the
+  caller persists it. This is what keeps the tests backend-free.
+- State fields added beyond the plan's schema: `assistant_turns`, `consecutive_llm_errors`
+  (`errors` is append-only and cannot distinguish "two in a row"), `notes` (graph-level
+  qualifications, kept out of `errors`, which means LLM failures only), `report`.
+- **Model config:** `claude-opus-5`, `thinking={"type":"adaptive","display":"summarized"}`,
+  `output_config={"effort":"high"}`. **No `budget_tokens`** — a 400 on this model. Thinking is
+  never disabled: with it off the model can write a tool call into visible text where it
+  silently never runs. `display:"summarized"` costs nothing extra and puts the reasoning into
+  the audit trail.
+- **Server-side refusal fallbacks were deliberately NOT enabled.** The Anthropic guidance is
+  to include them by default on Opus 5, but they require moving the core loop to
+  `client.beta.messages` with a beta header, and `decide` already routes a refusal to a real
+  report. Revisit if a refusal is ever seen live.
+- **Known limitation:** the sweep's metric and log calls use `lookback_minutes` (anchored to
+  now inside the tool); only the deploy call is anchored to `reference_time`. Right for a live
+  fault, wrong for replaying a hours-old incident. Fix is `since`/`until` on those calls.
 
 ## Next Session
 
-**Pick up at: sub-phase 3.2 — the ReAct reasoning loop + LangGraph orchestration.**
+**Pick up at: the live rehearsal of 3.2.** Everything below is unstarted.
 
-The tool layer is ready to plug in: `TOOLS[name]["input_model"].model_json_schema()` is already the exact shape the Anthropic tool-use API wants, and `run_tool(name, arguments_dict)` validates raw model arguments and returns a `ToolResult` — bad arguments and unknown tool names come back as `ok=False` observations rather than exceptions, so nothing the model sends can kill the graph. `ToolResult.model_dump(mode="json")` drops straight into the `investigations.evidence` jsonb column; note that `investigations.steps` is an `int` *count*, not a transcript, so any step-by-step trail must nest inside `evidence`.
+**1. Live end-to-end verification** (the same protocol that closed out 3.1):
 
-**Still deferred (explicitly out of scope for 3.1):**
-- Raw-PromQL escape hatch, gated by an allow-list.
-- Write tools + policy gate (3.3), LangSmith tracing (Phase 4).
-- `agent-api` `/metrics` + Alertmanager (existing tech debt).
-- The injector's `ground_truth_*` dual-write to **Postgres** — ground truth still lives only in `injector/ground_truth.jsonl`, though it now also records `correlated_deploy`. Needed before Phase 5.
-
-**To run the stack:** `docker compose up -d --build`. Prometheus at `localhost:9090`, agent-api at `localhost:8000`.
-
-**To run tests:** from each of `services/*`, `injector/`, `api/`, and `agent/`: `e:/sre-agent/.venv/Scripts/python -m pytest`.
-
-**To exercise a tool by hand:**
 ```bash
-docker compose up -d
+docker compose up -d --build
 python injector/traffic.py --target api-gateway --rps 5 --duration 300 &
 python injector/seed_deploys.py --noise 5
-python injector/inject.py --fault latency --target downstream-dep \
-       --params '{"delay_ms": 3000}' --duration 120 --deploy
+python injector/inject.py --fault timeout --target api-gateway --duration 120 --deploy
 
-# during the fault window (PROMETHEUS_URL=http://localhost:9090 from the host):
-python -m agent.tools.probe --list
-python -m agent.tools.probe --tool query_metrics --args '{"metric":"http_request_duration_seconds","service":"downstream-dep","path":"/data","aggregation":"p99"}'
-python -m agent.tools.probe --tool query_logs --args '{"levels":["ERROR","WARNING"],"lookback_minutes":5}'
-python -m agent.tools.probe --tool query_deploy_history --args '{"lookback_minutes":120}'
+# during the fault window, from the host:
+PROMETHEUS_URL=http://localhost:9090 python -m agent.graph.run \
+    --alert eval/scenarios/gateway-timeout.json
 ```
+
+Check, for each of the four faults (`timeout`, `latency`, `bad_config`, `memory`), that:
+`fault_type` and `service` match the tail of `injector/ground_truth.jsonl`; confidence >= 0.85
+on the clear-cut ones; **every citation string appears verbatim in some evidence entry's
+`query`**; <= 6 iterations; the report round-trips through `json.dumps`; and
+`usage.cache_read_input_tokens` is non-zero after the first call (if it is zero across
+repeated calls, something in the tools+system prefix is varying).
+
+The `memory` fault is the interesting one — the opening sweep finds nothing, so the loop has
+to earn its second turn by going after `downstream_memory_bytes`.
+
+**2. The `SRE_AGENT_LIVE` graph smoke test** — one gated run in
+`agent/tests/test_smoke_live.py` asserting invariants only (terminates, produces a report,
+citations resolve), never a specific diagnosis. Written but for the live suite; **not done**.
+
+**3. Then sub-phase 3.3** — write tools + the deterministic policy gate.
+
+**Still deferred (explicitly out of scope for 3.2):**
+- Wiring the graph into `POST /investigate` as a background task, and persisting the report.
+- LangSmith tracing (Phase 4).
+- Raw-PromQL escape hatch, gated by an allow-list.
+- The injector's `ground_truth_*` dual-write to Postgres — still only in
+  `injector/ground_truth.jsonl`. Needed before Phase 5.
+- `agent-api` `/metrics` + Alertmanager (existing tech debt).
+
+**Note:** `CLAUDE.md`'s component table still lists Reasoning Loop and Orchestration as
+"Not started", and its Current Phase section still points at 3.2. Update both once the live
+rehearsal confirms the loop works.
+
+**To run tests:** from each of `services/*`, `injector/`, `api/`, and `agent/`:
+`e:/sre-agent/.venv/Scripts/python -m pytest`.
+
+**To exercise the graph by hand:**
+```bash
+python -m agent.graph.run --alert eval/scenarios/gateway-timeout.json
+python -m agent.graph.run --alert eval/scenarios/downstream-memory.json --json
+python -m agent.graph.run --alert <file> --reference-time 2026-08-25T12:00:00Z
+```
+Exit codes: 0 = completed, 1 = the investigation failed, 2 = bad usage.
+
+**To exercise one tool by hand:** unchanged from 3.1 —
+`python -m agent.tools.probe --list`, then `--tool <name> --args '<json>'`.
 
 **To run the live smoke suite:**
 ```bash
