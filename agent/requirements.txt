@@ -4,3 +4,9 @@ docker==7.1.0
 sqlalchemy[asyncio]==2.0.44
 asyncpg==0.30.0
 greenlet==3.2.4
+
+# The reasoning loop. anthropic 1.x is built on httpx2, which installs
+# alongside the httpx pinned above rather than conflicting with it - the tools
+# keep using httpx, the model client uses httpx2.
+anthropic==1.0.0
+langgraph==1.2.11

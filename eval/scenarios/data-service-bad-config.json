@@ -1,0 +1,33 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"DataServiceErrors\", service=\"data-service\"}",
+  "status": "firing",
+  "receiver": "sre-agent",
+  "groupLabels": {"alertname": "DataServiceErrors", "service": "data-service"},
+  "commonLabels": {
+    "alertname": "DataServiceErrors",
+    "service": "data-service",
+    "severity": "critical",
+    "job": "data-service"
+  },
+  "commonAnnotations": {
+    "summary": "data-service is failing a large share of its requests",
+    "description": "data-service has been returning errors at a sustained rate for more than two minutes."
+  },
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "DataServiceErrors",
+        "service": "data-service",
+        "severity": "critical",
+        "instance": "data-service:8000"
+      },
+      "annotations": {},
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph",
+      "fingerprint": "c3d4e5f607182930"
+    }
+  ]
+}

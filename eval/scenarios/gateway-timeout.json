@@ -1,0 +1,33 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"GatewayTimeouts\", service=\"api-gateway\"}",
+  "status": "firing",
+  "receiver": "sre-agent",
+  "groupLabels": {"alertname": "GatewayTimeouts", "service": "api-gateway"},
+  "commonLabels": {
+    "alertname": "GatewayTimeouts",
+    "service": "api-gateway",
+    "severity": "critical",
+    "job": "api-gateway"
+  },
+  "commonAnnotations": {
+    "summary": "api-gateway is failing to complete upstream calls",
+    "description": "Requests through api-gateway are returning 504 and its p99 latency is pinned at the request budget."
+  },
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "GatewayTimeouts",
+        "service": "api-gateway",
+        "severity": "critical",
+        "instance": "api-gateway:8000"
+      },
+      "annotations": {},
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph",
+      "fingerprint": "a1b2c3d4e5f60718"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"DownstreamDepUnhealthy\", service=\"downstream-dep\"}",
+  "status": "firing",
+  "receiver": "sre-agent",
+  "groupLabels": {"alertname": "DownstreamDepUnhealthy", "service": "downstream-dep"},
+  "commonLabels": {
+    "alertname": "DownstreamDepUnhealthy",
+    "service": "downstream-dep",
+    "severity": "warning",
+    "job": "downstream-dep"
+  },
+  "commonAnnotations": {
+    "summary": "downstream-dep is reporting unhealthy",
+    "description": "downstream-dep has crossed a resource threshold. No error rate or latency change has been reported alongside it."
+  },
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "DownstreamDepUnhealthy",
+        "service": "downstream-dep",
+        "severity": "warning",
+        "instance": "downstream-dep:8000"
+      },
+      "annotations": {},
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph",
+      "fingerprint": "d4e5f60718293041"
+    }
+  ]
+}

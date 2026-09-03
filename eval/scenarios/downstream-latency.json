@@ -1,0 +1,33 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"HighRequestLatency\", service=\"api-gateway\"}",
+  "status": "firing",
+  "receiver": "sre-agent",
+  "groupLabels": {"alertname": "HighRequestLatency", "service": "api-gateway"},
+  "commonLabels": {
+    "alertname": "HighRequestLatency",
+    "service": "api-gateway",
+    "severity": "warning",
+    "job": "api-gateway"
+  },
+  "commonAnnotations": {
+    "summary": "api-gateway p99 latency is far above its normal range",
+    "description": "p99 request duration through api-gateway has risen by more than an order of magnitude over the last 10 minutes."
+  },
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighRequestLatency",
+        "service": "api-gateway",
+        "severity": "warning",
+        "instance": "api-gateway:8000"
+      },
+      "annotations": {},
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph",
+      "fingerprint": "b2c3d4e5f6071829"
+    }
+  ]
+}
