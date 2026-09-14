@@ -6,6 +6,42 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
+**Date:** Day 11 (Phase 3 — sub-phase 3.2: move the model call onto Bedrock)
+
+**What was done:**
+
+Repointed the one model seam, `agent/graph/llm.py`, from the first-party `AsyncAnthropic`
+client to `AsyncAnthropicBedrock` (Claude Sonnet 4.5 on Amazon Bedrock, `eu-north-1`, bearer
+token via `AWS_BEARER_TOKEN_BEDROCK`). No new dependency — `anthropic==1.0.0` already ships
+the Bedrock client, and no boto3, because the region is passed explicitly and bearer auth
+returns before the SigV4 path.
+
+Everything else in `llm.py` survived untouched: the single explicit `cache_control`
+breakpoint (explicit breakpoints work on Bedrock; top-level auto-caching is what the legacy
+integration rejects), cost accounting, the never-raises contract, the per-event-loop client
+cache. Two things could not survive — Sonnet 4.5 predates both. `thinking` moved from
+`{"type":"adaptive"}` to `{"type":"enabled","budget_tokens":4000}`, and `output_config` is
+gone entirely since `effort` is a 400 on this model. `AGENT_EFFORT` was removed from
+`agent/config.py` rather than left as a knob that does nothing; `BEDROCK_REGION` and
+`AGENT_THINKING_BUDGET` replace it. Three tests in `agent/tests/test_llm.py` asserted the old
+contract and were inverted, plus one new guard on the Bedrock pricing key.
+
+Also wired: `.env.example` and `docker-compose.yml` now carry `AWS_BEARER_TOKEN_BEDROCK` +
+`AWS_REGION` instead of `ANTHROPIC_API_KEY`.
+
+**Current state:** agent tests **450 passed, 20 skipped**, all offline. Client construction
+verified to resolve to `https://bedrock-runtime.eu-north-1.amazonaws.com`. **The live
+rehearsal still has not run** — it is now the gate for both the loop and this switch at once.
+
+**Watch for at rehearsal:** the `eu.` inference-profile model id is unverified from here (a
+404 means try the bare `anthropic.claude-sonnet-4-5-...` id via `AGENT_MODEL`, not a code
+change); `cost_usd` in the Sonnet range, not ~1.7x inflated; and `cache_read_tokens > 0` by
+the second iteration.
+
+---
+
+## Previous Session
+
 **Date:** Day 10 (Phase 3 — sub-phase 3.2: ReAct reasoning loop + LangGraph orchestration)
 
 **What was done:**
@@ -39,8 +75,9 @@ Twelve steps, each its own test-then-implement cycle:
 - **`agent/graph/__init__.py`** — `build_graph()`, `investigate()`, `RECURSION_LIMIT`.
 - **`agent/graph/run.py`** — the CLI, sibling of `agent/tools/probe.py`.
 - **`eval/scenarios/*.json`** — four Alertmanager payloads, one per injectable fault.
-- **`agent/config.py`** — `AGENT_MODEL`, `AGENT_MAX_TOKENS`, `AGENT_EFFORT`,
-  `MAX_TOOL_CALLS_PER_ITERATION`, and the seven stop-condition constants.
+- **`agent/config.py`** — `AGENT_MODEL`, `BEDROCK_REGION`, `AGENT_MAX_TOKENS`,
+  `AGENT_THINKING_BUDGET`, `MAX_TOOL_CALLS_PER_ITERATION`, and the seven stop-condition
+  constants.
 
 **Current state:**
 
@@ -62,9 +99,12 @@ Twelve steps, each its own test-then-implement cycle:
 **Blockers:** None. The one open decision is whether to enable server-side refusal
 fallbacks (see below).
 
-**Environment note (unchanged):** `DATABASE_URL` must be the Supavisor **session pooler**
-DSN with the async driver — see the Day 9 entry in git history for why. `.env` already has
-`ANTHROPIC_API_KEY` set.
+**Environment note:** `DATABASE_URL` must be the Supavisor **session pooler**
+DSN with the async driver — see the Day 9 entry in git history for why. The model call now
+goes to **Amazon Bedrock**: `.env` needs `AWS_BEARER_TOKEN_BEDROCK` and
+`AWS_REGION=eu-north-1`. That bearer token is **short-lived** (STS-backed, ~12h) — an
+expired one fails on auth in a way that reads like a client bug, so check the clock before
+blaming the code.
 
 ### Design decisions worth knowing before touching this code
 
@@ -90,11 +130,13 @@ DSN with the async driver — see the Day 9 entry in git history for why. `.env`
 - State fields added beyond the plan's schema: `assistant_turns`, `consecutive_llm_errors`
   (`errors` is append-only and cannot distinguish "two in a row"), `notes` (graph-level
   qualifications, kept out of `errors`, which means LLM failures only), `report`.
-- **Model config:** `claude-opus-5`, `thinking={"type":"adaptive","display":"summarized"}`,
-  `output_config={"effort":"high"}`. **No `budget_tokens`** — a 400 on this model. Thinking is
-  never disabled: with it off the model can write a tool call into visible text where it
-  silently never runs. `display:"summarized"` costs nothing extra and puts the reasoning into
-  the audit trail.
+- **Model config:** `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` on Bedrock
+  (`AsyncAnthropicBedrock`, bearer-token auth, region passed explicitly so boto3 stays off
+  the path), `thinking={"type":"enabled","budget_tokens":4000}`. **No `output_config`** —
+  `effort` is a 400 on Sonnet 4.5, and adaptive thinking is 4.6+ only. Thinking is never
+  disabled: with it off the model can write a tool call into visible text where it silently
+  never runs. The Bedrock model ids are literal keys in `PRICING` ($3/$15) — without them
+  `estimate_cost` falls through to the Opus default and overstates spend ~1.7x.
 - **Server-side refusal fallbacks were deliberately NOT enabled.** The Anthropic guidance is
   to include them by default on Opus 5, but they require moving the core loop to
   `client.beta.messages` with a beta header, and `decide` already routes a refusal to a real
