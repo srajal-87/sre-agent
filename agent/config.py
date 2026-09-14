@@ -27,18 +27,26 @@ LOG_SERVICES = ["api-gateway", "data-service", "downstream-dep"]
 # instead of raising at import time.
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-# The model that does the reasoning. Opus 5 runs adaptive thinking by default;
-# see agent/graph/llm.py for why thinking is never disabled here.
-AGENT_MODEL = os.getenv("AGENT_MODEL", "claude-opus-5")
+# The model that does the reasoning, addressed as a Bedrock model id. The "eu."
+# prefix is the EU cross-region inference profile, which is how Claude models
+# are reached in eu-north-1; if Bedrock 404s it, try the bare
+# "anthropic.claude-sonnet-4-5-20250929-v1:0" via AGENT_MODEL before editing
+# code. See agent/graph/llm.py for why thinking is never disabled here.
+AGENT_MODEL = os.getenv("AGENT_MODEL", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0")
+
+# The Bedrock region, passed to the client explicitly. Doing so keeps the SDK's
+# region inference - and the boto3 import behind it - off the path entirely.
+BEDROCK_REGION = os.getenv("AWS_REGION", "eu-north-1")
 
 # Ceiling on one response, thinking tokens included. Comfortably above what a
 # hypothesis plus three tool calls needs, and low enough to stay well inside the
 # SDK's non-streaming timeout.
 AGENT_MAX_TOKENS = int(os.getenv("AGENT_MAX_TOKENS", "16000"))
 
-# Reasoning depth: low | medium | high | xhigh | max. "high" is the API default;
-# "medium" is the first cost lever to pull once Phase 5 gives a baseline.
-AGENT_EFFORT = os.getenv("AGENT_EFFORT", "high")
+# Extended-thinking budget. Sonnet 4.5 takes an explicit budget rather than the
+# adaptive thinking of the Opus 5 family. Two hard constraints: it must be
+# >= 1024, and strictly < AGENT_MAX_TOKENS, which the budget is drawn from.
+AGENT_THINKING_BUDGET = int(os.getenv("AGENT_THINKING_BUDGET", "4000"))
 
 # How many read-tool calls the executor will run for one reason cycle. Token
 # discipline: a model asked for an unbounded list will happily produce one. The

@@ -60,7 +60,7 @@ class _FakeMessages:
 
 
 class FakeClient:
-    """Stands in for anthropic.AsyncAnthropic - the whole testing seam."""
+    """Stands in for anthropic.AsyncAnthropicBedrock - the whole testing seam."""
 
     def __init__(self, response=None, error=None):
         self.messages = _FakeMessages(response, error)
@@ -139,23 +139,27 @@ def test_thinking_is_left_on():
 
     _call(client)
 
-    assert client.messages.kwargs["thinking"]["type"] == "adaptive"
+    assert client.messages.kwargs["thinking"]["type"] == "enabled"
 
 
-def test_no_token_budget_is_sent_because_opus_5_rejects_one():
+def test_a_token_budget_is_sent_and_is_inside_the_api_bounds():
+    """Sonnet 4.5 predates adaptive thinking: the budget is explicit, must be at
+    least 1024, and must leave room under max_tokens for the answer itself."""
     client = FakeClient(_response())
 
     _call(client)
 
-    assert "budget_tokens" not in json.dumps(client.messages.kwargs["thinking"])
+    budget = client.messages.kwargs["thinking"]["budget_tokens"]
+    assert budget == config.AGENT_THINKING_BUDGET
+    assert 1024 <= budget < config.AGENT_MAX_TOKENS
 
 
-def test_effort_is_sent_inside_output_config():
+def test_no_output_config_is_sent_because_sonnet_4_5_rejects_effort():
     client = FakeClient(_response())
 
     _call(client)
 
-    assert client.messages.kwargs["output_config"] == {"effort": config.AGENT_EFFORT}
+    assert "output_config" not in client.messages.kwargs
 
 
 # -- what comes back --------------------------------------------------
@@ -241,6 +245,14 @@ def test_the_cost_prices_cache_writes_and_reads_at_their_own_rates():
 
 def test_a_call_with_no_tokens_costs_nothing():
     assert estimate_cost("claude-opus-5", 0, 0, 0, 0) == 0.0
+
+
+def test_the_bedrock_model_id_is_priced_rather_than_falling_through():
+    """The fallback to Opus rates is silent: it does not error, it just
+    overstates every call by ~1.7x and trips the budget stop early."""
+    priced = estimate_cost(config.AGENT_MODEL, 1_000_000, 1_000_000, 0, 0)
+
+    assert priced == pytest.approx(3.0 + 15.0)
 
 
 def test_an_unpriced_model_still_reports_a_cost():

@@ -1,9 +1,10 @@
 """One model call, behind an injectable seam, priced and accounted for.
 
-``call_model`` is the only place the agent talks to Anthropic. It takes a
-``client`` keyword with a real default, matching the tool layer's convention -
-so the whole graph is testable with a fake object and no API key, no network,
-and no mocking library.
+``call_model`` is the only place the agent talks to a model - Claude on Amazon
+Bedrock, authenticated by the ``AWS_BEARER_TOKEN_BEDROCK`` bearer token. It
+takes a ``client`` keyword with a real default, matching the tool layer's
+convention - so the whole graph is testable with a fake object and no
+credentials, no network, and no mocking library.
 
 Like a tool, it **never raises**. An exception thirty seconds into an
 investigation would lose the run and every piece of evidence already gathered,
@@ -12,10 +13,12 @@ decides what to do about it.
 
 Two API details worth stating, because both are silent failures:
 
-* **Thinking is left on.** Opus 5 runs adaptive thinking by default; with it
-  disabled the model can write a tool call into visible text, where the turn
-  succeeds and the call simply never runs. ``budget_tokens`` is not sent - it is
-  rejected with a 400 on this model.
+* **Thinking is left on.** With it disabled the model can write a tool call into
+  visible text, where the turn succeeds and the call simply never runs. Sonnet
+  4.5 predates adaptive thinking, so it takes the explicit form -
+  ``{"type": "enabled", "budget_tokens": N}`` - rather than ``"adaptive"``. For
+  the same reason no ``output_config`` is sent at all: ``effort`` is a 400 on
+  this model.
 * **One cache breakpoint, on the last tool definition.** Caching is a prefix
   match over tools -> system -> messages, so that single breakpoint covers the
   whole stable prefix. Tool order is therefore part of the cache key, which is
@@ -31,8 +34,13 @@ from agent import config
 from agent.graph.hypothesis import UPDATE_HYPOTHESIS
 from agent.tools import TOOLS
 
-# Dollars per million tokens, from the model's published rates.
+# Dollars per million tokens, from the model's published rates. Keyed by the
+# literal model string that gets sent, so the Bedrock ids need their own entries
+# - without them every call falls through to DEFAULT_PRICING (Opus rates) and
+# overstates spend, tripping COST_CAP_USD early.
 PRICING = {
+    "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {"input": 3.0, "output": 15.0},
+    "anthropic.claude-sonnet-4-5-20250929-v1:0": {"input": 3.0, "output": 15.0},
     "claude-opus-5": {"input": 5.0, "output": 25.0},
     "claude-sonnet-5": {"input": 3.0, "output": 15.0},
     "claude-haiku-4-5": {"input": 1.0, "output": 5.0},
@@ -112,12 +120,14 @@ _clients: dict[object, object] = {}
 
 
 def get_client():
-    """Return the async Anthropic client for the running loop.
+    """Return the async Bedrock client for the running loop.
 
-    Imported lazily so that ``import agent.graph.llm`` works with no API key -
-    which is what keeps the unit tests offline.
+    Imported lazily so that ``import agent.graph.llm`` works with no AWS
+    credentials - which is what keeps the unit tests offline. The region is
+    passed explicitly rather than inferred; the bearer token is left to the SDK,
+    which reads ``AWS_BEARER_TOKEN_BEDROCK`` from the environment.
     """
-    from anthropic import AsyncAnthropic
+    from anthropic import AsyncAnthropicBedrock
 
     try:
         key = asyncio.get_running_loop()
@@ -125,7 +135,7 @@ def get_client():
         key = None
 
     if key not in _clients:
-        _clients[key] = AsyncAnthropic()
+        _clients[key] = AsyncAnthropicBedrock(aws_region=config.BEDROCK_REGION)
     return _clients[key]
 
 
@@ -152,7 +162,6 @@ async def call_model(
     client=None,
     model: str | None = None,
     max_tokens: int | None = None,
-    effort: str | None = None,
 ) -> ModelResponse:
     """Make one request. Reports failure; never raises."""
     started = time.perf_counter()
@@ -168,10 +177,11 @@ async def call_model(
             system=system,
             tools=tools,
             messages=messages,
-            # display="summarized" costs nothing extra and puts the model's
-            # reasoning into the audit trail instead of an empty string.
-            thinking={"type": "adaptive", "display": "summarized"},
-            output_config={"effort": effort or config.AGENT_EFFORT},
+            # No output_config: "effort" is a 400 on Sonnet 4.5.
+            thinking={
+                "type": "enabled",
+                "budget_tokens": config.AGENT_THINKING_BUDGET,
+            },
         )
     except Exception as exc:  # noqa: BLE001 - reports, does not raise
         return ModelResponse(
