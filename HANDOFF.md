@@ -6,6 +6,90 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
+**Date:** Day 12 (Phase 3 — sub-phase 3.2: the live rehearsal)
+
+**What was done:**
+
+Ran the 3.2 gate: the graph's first real API calls, against the live stack, one run per
+injectable fault. **Result: 3 of 4 passed. The gate is NOT closed** — see the `timeout`
+miss below. `CLAUDE.md` was therefore left untouched (components 4 and 5 still read
+"Built, live rehearsal pending", Current Phase still 3.2).
+
+First, a prerequisite the rehearsal could not have been honest without: **the deploy ledger
+was restored.** It held 7 rows all dated 2026-08-21, and `query_deploy_history` clamps
+`lookback_minutes` to 1440, so the agent could not see any of them — it was getting "no
+deploys, exclude a code change" for free. Reseeded with
+`python injector/seed_deploys.py --noise 6 --hours 2`. **The 2 hours matters:**
+`SWEEP_DEPLOYS_MINUTES` is 120 ([agent/graph/nodes.py](agent/graph/nodes.py)), so
+`seed_deploys.py`'s default `--hours 6` would have put most noise outside the window the
+sweep actually reads. The 7 stale rows were kept (unreachable anyway, and they keep
+`ledger_is_empty` honestly false).
+
+Per-run shape, repeated four times: `docker compose restart prometheus` (a clean 30m metric
+window — the sweep is anchored to *now*, so back-to-back runs otherwise bleed into each
+other, and the TSDB is ephemeral so this is free), 120s of healthy traffic, inject, then
+investigate ~100s in (the rate window is 60s, so a fault is crisp well before the 5m mark).
+
+| Fault | Deploy | fault_type | service | Conf | Steps | Verdict |
+|---|---|---|---|---|---|---|
+| `timeout` (api-gateway) | none | OK | **data-service — WRONG** | 0.75 | 4 | **FAIL** |
+| `latency` (downstream-dep) | correlated | OK | OK | 0.85 | 1 | pass (caveat) |
+| `bad_config` (data-service) | correlated | OK | OK | 0.85 | 1 | pass |
+| `memory` (downstream-dep) | none | OK | OK | 0.75 | 3 | pass |
+
+**Both Day 11 unknowns are resolved.** The `eu.` inference-profile id works — no 404, no
+`AGENT_MODEL` override needed. **Bedrock does honour the explicit `cache_control`
+breakpoint**: every call after the first in a run read exactly 2511 cached tokens (the tool
+block). Single-call runs show `cache_read=0` simply because there is nothing to read back
+yet. Cost is at Sonnet rates, not the 1.7x Opus fallthrough — a one-call run billed $0.0483
+vs a naive $0.0389, the gap being exactly the 1.25x cache *write* on that 2511-token prefix.
+All four runs: **$0.44 total**.
+
+**Citations: 15 across four runs, all resolving, zero dangling.** `decide`'s validation held
+against a real model. Reports round-tripped through `json.dumps`; all runs well under
+`MAX_ITERATIONS`.
+
+**The deploy noise did its job.** On both no-deploy faults the agent had 6 candidate deploys
+in view and blamed none — `memory` explicitly rejected the nearest on timing ("v3.7.1
+deployed at 11:13, memory jumped at 11:33 — 19 min gap"). On `bad_config` it picked the
+*correlated* row out of the noise and named it in the diagnosis (data-service v2.9.9
+"refactor configuration loading", touching `app/config.py`), matching ground truth exactly.
+
+`memory` behaved exactly as designed and is the best evidence the loop earns its keep: the
+sweep found nothing, so the model took two more turns, went after `downstream_memory_bytes`,
+and read the shape correctly as "jumped to 10MB and plateaued, not growing".
+
+`bad_config` reproduced the Phase 1 tech debt live: data-service emitted 500s at 4.97/s while
+api-gateway recorded **zero** 500s and zero structured ERRORs.
+
+**Two open defects (each its own TDD cycle — deliberately NOT fixed in the rehearsal):**
+
+1. **`timeout` names the wrong service.** api-gateway logs `"upstream timeout calling
+   data-service"` and the agent took that at face value, naming data-service — despite having
+   gathered contrary evidence in the same run (data-service p99 *falling* to 44ms, no
+   data-service errors, `config_errors_total` flat). It hedged correctly (0.75, escalate)
+   rather than asserting certainty. **Unknown whether this is systematic or a one-off — a
+   single run is not enough to tell. Re-run `timeout` 2-3x before designing a fix.**
+2. **`latency` mis-dated the correlated deploy.** It found the right row (v3.7.1) but ruled
+   it out against a symptom onset of 11:05 that it inferred rather than observed; the deploy
+   actually preceded the fault by 67s. Same soft spot as (1): temporal reasoning is weaker
+   than symptom reading, and the known `reference_time` anchoring limitation sits underneath
+   it.
+
+**Mechanical gotcha worth not rediscovering:** `InvestigationReport` does **not** carry
+`cache_read_tokens` (it lives in graph state and each `StepRecord`), so `--json` cannot answer
+the cache question. It was answered by wrapping the injected `call` collaborator in a
+scratchpad driver — the same seam the tests use. No production code changed.
+
+**Current state:** offline regression unchanged and green — **agent 450 passed / 20 skipped**,
+**injector 45**, **api 13 passed / 1 skipped**. Run outputs are in the session scratchpad, not
+the repo. `injector/ground_truth.jsonl` has four new rows; the `deploys` table has 6 new noise
+rows plus 2 correlated.
+
+---
+
+## Previous Session
+
 **Date:** Day 11 (Phase 3 — sub-phase 3.2: move the model call onto Bedrock)
 
 **What was done:**
@@ -40,7 +124,7 @@ the second iteration.
 
 ---
 
-## Previous Session
+## Earlier Session
 
 **Date:** Day 10 (Phase 3 — sub-phase 3.2: ReAct reasoning loop + LangGraph orchestration)
 
@@ -147,36 +231,45 @@ blaming the code.
 
 ## Next Session
 
-**Pick up at: the live rehearsal of 3.2.** Everything below is unstarted.
+**Pick up at: closing the `timeout` miss.** The rehearsal ran (Day 12) and 3 of 4 faults
+passed; `timeout` names the wrong service. Until that is resolved the 3.2 gate is open and
+`CLAUDE.md` stays as-is.
 
-**1. Live end-to-end verification** (the same protocol that closed out 3.1):
+**1. Characterise the `timeout` miss before designing anything.** Re-run it 2-3 times and see
+whether it lands on `data-service` every time or only sometimes — that determines whether the
+fix is a prompt change, a `decide` rule, or nothing at all. The recipe (one fault, ~8 min):
 
 ```bash
-docker compose up -d --build
-python injector/traffic.py --target api-gateway --rps 5 --duration 300 &
-python injector/seed_deploys.py --noise 5
-python injector/inject.py --fault timeout --target api-gateway --duration 120 --deploy
-
-# during the fault window, from the host:
+set -a; . ./.env; set +a            # nothing in this repo loads .env
+docker compose restart prometheus   # clean 30m window; the sweep anchors to *now*
+python injector/traffic.py --target api-gateway --rps 5 --duration 420 &
+sleep 120                           # healthy baseline, so "this changed" is visible
+python injector/inject.py --fault timeout --target api-gateway --duration 300 --no-deploy &
+sleep 100                           # 60s rate window now fully inside the fault
 PROMETHEUS_URL=http://localhost:9090 python -m agent.graph.run \
-    --alert eval/scenarios/gateway-timeout.json
+    --alert eval/scenarios/gateway-timeout.json --json > out.json
 ```
 
-Check, for each of the four faults (`timeout`, `latency`, `bad_config`, `memory`), that:
-`fault_type` and `service` match the tail of `injector/ground_truth.jsonl`; confidence >= 0.85
-on the clear-cut ones; **every citation string appears verbatim in some evidence entry's
-`query`**; <= 6 iterations; the report round-trips through `json.dumps`; and
-`usage.cache_read_input_tokens` is non-zero after the first call (if it is zero across
-repeated calls, something in the tools+system prefix is varying).
+Then check against `tail -1 injector/ground_truth.jsonl`. The substantive question: the agent
+had evidence that data-service was *healthy* (p99 falling, no errors) and named it anyway,
+on the strength of api-gateway's `"upstream timeout calling data-service"` log string. Any
+fix should make the loop weigh gathered evidence against a log message's implied blame —
+not just harden the prompt against this one sentence.
 
-The `memory` fault is the interesting one — the opening sweep finds nothing, so the loop has
-to earn its second turn by going after `downstream_memory_bytes`.
+Note the deploy ledger decays: `seed_deploys.py --noise N --hours 2` must be re-run if more
+than ~2h have passed, or `query_deploy_history` sees an empty window again
+(`SWEEP_DEPLOYS_MINUTES` is 120).
 
 **2. The `SRE_AGENT_LIVE` graph smoke test** — one gated run in
 `agent/tests/test_smoke_live.py` asserting invariants only (terminates, produces a report,
 citations resolve), never a specific diagnosis. Written but for the live suite; **not done**.
 
 **3. Then sub-phase 3.3** — write tools + the deterministic policy gate.
+
+**Also worth folding in when convenient:** the `latency` run mis-dated the correlated deploy
+(inferred a symptom onset rather than observing one). The `since`/`until` fix for the sweep's
+now-anchored metric and log calls — already on the known-limitations list — is the most
+likely lever on both that and the temporal half of the `timeout` miss.
 
 **Still deferred (explicitly out of scope for 3.2):**
 - Wiring the graph into `POST /investigate` as a background task, and persisting the report.
@@ -186,9 +279,11 @@ citations resolve), never a specific diagnosis. Written but for the live suite; 
   `injector/ground_truth.jsonl`. Needed before Phase 5.
 - `agent-api` `/metrics` + Alertmanager (existing tech debt).
 
-**Note:** `CLAUDE.md`'s component table still lists Reasoning Loop and Orchestration as
-"Not started", and its Current Phase section still points at 3.2. Update both once the live
-rehearsal confirms the loop works.
+**Note:** `CLAUDE.md` was deliberately **not** updated on Day 12. Components 4 and 5 still
+read "Built, live rehearsal pending" and Current Phase still points at 3.2, because the
+rehearsal did not fully pass. Flip both to Complete and move Current Phase to 3.3 once
+`timeout` matches ground truth — that file changes only when the architecture genuinely
+does, and a gate that is still open is not that.
 
 **To run tests:** from each of `services/*`, `injector/`, `api/`, and `agent/`:
 `e:/sre-agent/.venv/Scripts/python -m pytest`.
