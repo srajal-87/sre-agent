@@ -56,9 +56,11 @@ services:
       - "8000:8000"
     environment:
       - SERVICE_NAME=agent-api
-      # Model API key, Supabase URL, LangSmith key — set via .env file
+      # Bedrock bearer token, Supabase URL, LangSmith key — set via .env file.
+      # The Bedrock token is short-lived; re-up .env before a live run.
       - DATABASE_URL=${DATABASE_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK}
+      - AWS_REGION=${AWS_REGION}
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
       - PROMETHEUS_URL=http://prometheus:9090
       - COMPOSE_PROJECT=sre-agent
