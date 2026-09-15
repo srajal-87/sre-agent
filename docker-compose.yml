@@ -64,6 +64,12 @@ services:
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
       - PROMETHEUS_URL=http://prometheus:9090
       - COMPOSE_PROJECT=sre-agent
+      # The write side. Absent from .env it reads as off, which is the safe
+      # default: the policy gate still runs and records its verdict, and every
+      # action reports a dry run instead of touching the stack.
+      - AGENT_ALLOW_WRITES=${AGENT_ALLOW_WRITES:-}
+      - ACTION_TIMEOUT_SECONDS=${ACTION_TIMEOUT_SECONDS:-30}
+      - AUTO_ACTION_CONFIDENCE=${AUTO_ACTION_CONFIDENCE:-0.90}
     volumes:
       # query_logs reads container stdout through the Docker API. Root-equivalent
       # host access — acceptable for a local demo stack only (see docs/decisions.md).

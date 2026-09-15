@@ -239,3 +239,33 @@ def test_parse_returns_none_when_a_required_field_is_missing():
 def test_parse_returns_none_rather_than_raising_for_a_non_dict():
     assert parse_hypothesis(None) is None
     assert parse_hypothesis("timeout") is None
+
+
+# -- semantics, not an answer key -------------------------------------
+
+def test_the_schema_says_what_each_action_does():
+    """A name alone cannot be judged 'narrowest'. The rehearsal proved it: asked
+    to remediate a config fault from bare names, the model proposed a rollback."""
+    description = UPDATE_HYPOTHESIS["input_schema"]["properties"]["proposed_action"][
+        "description"
+    ]
+
+    for name, entry in ACTIONS.items():
+        assert name in description
+        assert entry["description"] in description
+
+
+def test_no_action_description_names_a_fault_type():
+    """The line between semantics and an answer key: what an action DOES may be
+    published; which fault it fixes may not."""
+    for name, entry in ACTIONS.items():
+        lowered = entry["description"].lower()
+        for label in ("timeout", "latency", "bad_config", "memory",
+                      "resource_exhaustion"):
+            assert label not in lowered, f"{name} names {label}"
+
+
+def test_the_published_semantics_stay_ascii():
+    UPDATE_HYPOTHESIS["input_schema"]["properties"]["proposed_action"][
+        "description"
+    ].encode("ascii")

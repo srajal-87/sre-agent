@@ -44,6 +44,17 @@ def action_signature(action: str, target: str) -> str:
 # names rather than inventing one. Typed str all the same - see Hypothesis.
 ACTION_NAMES = tuple(sorted(ACTIONS))
 
+# What each action *does*, built from the registry so it cannot drift from the
+# code. This is the line the 3.3 rehearsal forced us to draw: an answer key
+# (this fault -> that action) must never reach the model, but the semantics of
+# an action legitimately must. Asked to propose "the narrowest action that
+# addresses the mechanism" from bare names, the model proposed a rollback for a
+# configuration fault - a reasonable guess with no information to better it.
+# None of these descriptions names a fault type, and a test holds that line.
+ACTION_SEMANTICS = "\n".join(
+    f"  - {name}: {ACTIONS[name]['description']}" for name in ACTION_NAMES
+)
+
 # The closed vocabulary the agent may diagnose in. Closed so that Phase 5 can
 # score mechanically against incidents.ground_truth_fault; "unknown" exists so
 # the agent can honestly decline rather than pick the nearest label.
@@ -137,7 +148,8 @@ class Hypothesis(BaseModel):
             "Optional. The single action you would take to remediate this, if "
             "any. Propose the narrowest action that addresses the mechanism you "
             "named, and only once you are confident. Your proposal is checked "
-            "against a deterministic policy and may be refused."
+            "against a deterministic policy and may be refused.\n"
+            "The actions available, and what each one does:\n" + ACTION_SEMANTICS
         ),
         json_schema_extra={"enum": sorted(ACTION_NAMES)},
     )
