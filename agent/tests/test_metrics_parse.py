@@ -22,6 +22,35 @@ def _fixture(name: str) -> dict:
     return json.loads((FIXTURES / f"{name}.json").read_text())
 
 
+MATRIX_BASE_TS = 1787223249
+MATRIX_STEP_SECONDS = 60
+
+
+def _matrix(*labelled: tuple[str, list[float | None]]) -> dict:
+    """A query_range payload, written as data rather than as JSON literals.
+
+    ``None`` renders as Prometheus' string "NaN", which is how a series that has
+    stopped producing samples actually comes back.
+    """
+    return {
+        "status": "success",
+        "data": {
+            "resultType": "matrix",
+            "result": [
+                {
+                    "metric": {"instance": f"{label}:8000"},
+                    "values": [
+                        [MATRIX_BASE_TS + i * MATRIX_STEP_SECONDS,
+                         "NaN" if v is None else str(v)]
+                        for i, v in enumerate(values)
+                    ],
+                }
+                for label, values in labelled
+            ],
+        },
+    }
+
+
 def _requested_end(raw: dict) -> datetime:
     """The end of the window Prometheus was asked about.
 
@@ -229,6 +258,73 @@ def test_a_series_still_reporting_is_described_as_a_trend():
 
     assert "stopped reporting" not in text
     assert "fell from" in text
+
+
+# ── which series a multi-series summary describes ────────────────────
+
+def test_a_multi_series_summary_describes_the_biggest_movers_not_the_first():
+    """Prometheus' series order is arbitrary, and from turn 2 the summary line
+    is all the model still sees. Describing series[0] means the evidence it
+    reasons on is whichever series the TSDB happened to list first."""
+    raw = _matrix(
+        ("noise-a", [1.0, 1.0, 1.0]),
+        ("mover", [5.0, 3.0, 0.0]),       # the largest change, listed second
+        ("noise-b", [2.0, 2.0, 2.01]),
+        ("noise-c", [0.5, 0.5, 0.5]),
+    )
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(metric="http_requests_total"), series,
+        window_end=_requested_end(raw),
+    )
+
+    assert "mover" in text
+    assert "fell from 5 to 0" in text
+
+
+def test_a_multi_series_summary_describes_at_most_three():
+    """Bounded: the summary is one line the model reads on every later turn."""
+    raw = _matrix(*((f"svc-{i}", [float(i), 0.0]) for i in range(8)))
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(metric="http_requests_total"), series,
+        window_end=_requested_end(raw),
+    )
+
+    assert text.count(";") == 2          # three clauses
+    assert "svc-7" in text and "svc-6" in text and "svc-5" in text
+    assert "svc-0" not in text
+    assert "8 series" in text            # the rest still accounted for
+
+
+def test_a_series_that_stopped_reporting_outranks_one_that_merely_moved():
+    """Step 1's disclosure must survive Step 2's selection: a series that went
+    silent is a bigger event than one that changed value."""
+    raw = _matrix(
+        ("big-mover", [100.0, 50.0, 0.0]),
+        ("went-silent", [1.0, None, None]),
+    )
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(metric="http_requests_total"), series,
+        window_end=_requested_end(raw),
+    )
+
+    assert text.index("went-silent") < text.index("big-mover")
+    assert "stopped reporting" in text
+
+
+def test_the_ordering_does_not_depend_on_the_order_prometheus_returned():
+    """Deterministic, so two identical investigations read identical evidence."""
+    pairs = [("a", [1.0, 9.0]), ("b", [1.0, 5.0]), ("c", [1.0, 2.0])]
+    q = MetricsQuery(metric="http_requests_total")
+    forward, _, _ = parse_range_response(_matrix(*pairs))
+    backward, _, _ = parse_range_response(_matrix(*reversed(pairs)))
+    end = _requested_end(_matrix(*pairs))
+
+    assert summarise(q, forward, window_end=end) == summarise(
+        q, backward, window_end=end
+    )
 
 
 def test_summaries_and_notes_are_ascii():

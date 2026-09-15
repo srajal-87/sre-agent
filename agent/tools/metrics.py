@@ -428,6 +428,46 @@ def _describe(series: MetricSeries, window_end: datetime) -> str:
     )
 
 
+# What identifies a series in a one-line summary. ``method`` is in here because
+# it is part of the series identity (see _grouping): without it two genuinely
+# different series render as the same string, which is invisible while only one
+# series is described and confusing once three are.
+SUMMARY_LABELS = ("instance", "method", "path", "status")
+
+
+def _label_bits(series: MetricSeries) -> str:
+    """The labels worth naming in a one-line summary."""
+    return " ".join(
+        series.labels[k] for k in SUMMARY_LABELS if k in series.labels
+    )
+
+
+def _change(series: MetricSeries) -> float:
+    """How far the series travelled between its first and last surviving point."""
+    return abs(series.latest - series.points[0].value)
+
+
+def _notability(series: MetricSeries, window_end: datetime) -> tuple:
+    """Sort key: most notable first, and deterministic.
+
+    A series that stopped reporting outranks one that merely moved - going from
+    reporting to not reporting is the larger event, and its surviving points
+    barely move, so ranking on change alone would bury it. Ties break on the
+    label string so two identical investigations read identical evidence
+    regardless of the order Prometheus happened to return.
+    """
+    return (
+        0 if _is_stale(series, window_end) else 1,
+        -_change(series),
+        _label_bits(series),
+    )
+
+
+# How many series one summary line describes. Bounded because this line is all
+# the model still sees for every iteration but the newest (graph/messages.py).
+MAX_DESCRIBED_SERIES = 3
+
+
 def summarise(
     q: MetricsQuery, series: list[MetricSeries], *, window_end: datetime
 ) -> str:
@@ -450,18 +490,25 @@ def summarise(
             f"filters, or Prometheus retained no samples for that window."
         )
 
-    lead = series[0]
-    label_bits = " ".join(
-        v for k, v in lead.labels.items() if k in ("instance", "path", "status")
+    # The window goes before the description, not after: a stale series ends its
+    # clause on an absolute time, and "no samples in the 7.0m since over 30m"
+    # does not parse.
+    if len(series) == 1:
+        lead = series[0]
+        return (
+            f"{aggregation} {q.metric} for {_label_bits(lead) or scope} over "
+            f"{q.lookback_minutes}m: {_describe(lead, window_end)}."
+        )
+
+    ranked = sorted(series, key=lambda s: _notability(s, window_end))
+    described = "; ".join(
+        f"{_label_bits(s) or scope} {_describe(s, window_end)}"
+        for s in ranked[:MAX_DESCRIBED_SERIES]
     )
     point_count = sum(len(s.points) for s in series)
-    tail = f" {len(series)} series, {point_count} points." if len(series) > 1 else ""
     return (
-        # The window goes before the description, not after: a stale series ends
-        # its clause on an absolute time, and "no samples in the 7.0m since over
-        # 30m" does not parse.
-        f"{aggregation} {q.metric} for {label_bits or scope} over "
-        f"{q.lookback_minutes}m: {_describe(lead, window_end)}.{tail}"
+        f"{aggregation} {q.metric} for {scope} over {q.lookback_minutes}m: "
+        f"{described}. {len(series)} series, {point_count} points."
     )
 
 
