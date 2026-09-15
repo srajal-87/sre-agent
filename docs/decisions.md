@@ -101,3 +101,88 @@ The other two falsifications were about rule ordering. The plan listed `AGENT_AL
 Two methodology traps cost real runs and are worth recording because neither announces itself. A backgrounded `inject.py` killed when its shell exits never reverts the fault and never writes its ground-truth row — so the fault stays live and silently contaminates the *next* run, which then investigates a stack it was never meant to see. And `docker compose restart prometheus` between runs is necessary but not sufficient: the fault duration must also be shorter than the gap between runs. Both were found by noticing that a ground-truth row was missing, not by anything failing loudly, which is the argument for checking ground truth after every run rather than only when a result looks wrong. Finally, a transient network drop took one run down mid-rehearsal and the graph did exactly what it was built for — `status=failed`, a readable report rather than a null row, and the policy gate still consulted and recorded — which is the first time that path has been exercised by an actual failure rather than a test.
 
 `CLAUDE.md` and `ARCHITECTURE.md` are untouched. The 3.3 plan set the condition itself: components 4, 5 and 6 flip to Complete, and Stage 3 closes, only once *both* gates are closed. 3.3's is; 3.2's `timeout` miss reproduced again today and is now the single thing standing in the way — and it matters more than it did, because the gate acts on `hypothesis.service`, so a loop that names the wrong service hands the gate the wrong target.
+
+### Day 14: The tool was lying, and three of my own fixes lied afterwards
+
+The `timeout` miss is **still open** — three live runs, three wrong services — but the session
+changed what is known about it from "the model over-trusts a log string" to something much more
+specific, and most of what was wrong turned out to be ours rather than the model's.
+
+**The strongest refutation was arriving disguised as reassurance.** When data-service stops
+receiving requests, `histogram_quantile` over empty buckets returns `NaN`; `parse_range_response`
+drops those points, and `summarise` then computed a trend from the *surviving, pre-fault* points.
+The committed fixture `prom_range_histogram_p99.json` is exactly this case — 18 points, the last
+14 `NaN` — and it summarised as `flat at 0.00495`, when the truth is that the series went silent
+seven minutes earlier. On Day 12 the model read "data-service p99 falling to 44ms", concluded
+data-service was healthy, and named it anyway. **It was reasoning correctly from false evidence.**
+A series whose newest surviving point lags the window end by more than `MIN_RATE_WINDOW_SECONDS`
+now says so and names its last sample time. That constant is the principled threshold rather than
+a new magic number: it *is* the rate window, so a wider gap means any rate over the series already
+reads zero.
+
+**The opening sweep withheld the discriminator while its own neighbour explained why it should
+not.** Both `query_metrics` calls were scoped to `alert.service`; the `query_logs` call three
+lines below was deliberately unscoped, commented "the cause is usually downstream of the symptom".
+The metric calls contradicted their own neighbour's stated reasoning. Worth pinning permanently,
+because it is a property of the victim system rather than of the agent: **api-gateway's telemetry
+is byte-identical under a gateway `timeout` fault and a downstream-dep `latency` fault** — same
+504s, same `upstream_timeouts_total`, same ~2s duration in the same `le=2.5` bucket, same log
+line. Nothing measured at the alerting service separates them, so any diagnosis drawn only from
+the alerting service is a coin flip *by construction*. The discriminators are all one and two hops
+down, and the sweep now reads the whole chain.
+
+**Three prompt rules, each general rather than an answer key.** A log line is one service's
+account of what it believes happened, so naming another component is an *assertion* of blame and
+not a measurement of it — which matters here because under this fault the gateway never opens a
+socket to data-service at all; it sleeps, raises the timeout itself, and then logs a hardcoded
+string naming a service it never contacted. The confidence rubric's top band was quietly in
+tension with that, since it let a metric measured at one component corroborate a log line naming
+another; both signals must now be measured **at** the component being blamed. And after the first
+live run, a third: when several components go quiet at once, silence does not say which one broke
+— a component that failed and one that stopped being called look identical from outside — so
+follow one `trace_id`, and the hop where it stops is where the break is.
+
+**That third rule landed, and the run that proved it is the most informative of the three.** Run 2
+made the trace call and reported its result *correctly* — "the request arrived at api-gateway and
+returned 504, but never reached data-service or downstream-dep" — and then blamed data-service
+anyway, reading "never reached data-service" as *data-service is not responding* rather than
+*api-gateway never called it*. It stopped after two iterations at 0.50 while its own diagnosis
+said more was needed. Run 3 did not make the call at all, so the rule is followed inconsistently.
+
+**The humbling part: each of the three runs was poisoned by a different evidence defect, and two
+of them I introduced this session.** Adding "a series that stopped reporting outranks one that
+merely moved" is right for a series that was carrying traffic and went quiet, and wrong for the
+`/admin/fault` endpoints, which receive one request when a fault is set and another when it is
+cleared — they are stale *by construction*, so being permanently stale they held the top slots
+permanently. Run 2's entire p99 baseline was three `/admin/fault` series and the model never saw
+that api-gateway's p99 was pinned at 2.485s. Coverage is the only thing that separates them:
+measured on the payload, real series cover 25–35% of the window and one-shot admin endpoints
+3–7%. Absolute change does not separate them, because a latency series that stops has near-zero
+change by construction. Then run 3 exposed the second: `_change` compared only the first and last
+points, and `rate()` series begin and end at zero around any bounded incident, so a series that
+went 0 → 22 → 0 scored **0.0000** and the three slots went to `/health` and `/admin/fault` again.
+`max - min` is the right reading of "change across the window" and is already computed over the
+full pre-downsample point list — **identified with a failing test drafted, not yet implemented.**
+
+**A correction to Day 12's entry, which is wrong.** It records `docker compose restart prometheus`
+as "a clean reset precisely because the TSDB is ephemeral". It is not. A restart preserves the
+container's writable layer; only `down`/`rm` discards it. Run 3's 30-minute window therefore
+reached back far enough to swallow run 2's entire fault. `CLAUDE.md`'s ephemerality note is
+accurate about `docker compose down` and has been read as licensing the weaker command.
+
+**Two findings recorded rather than acted on.** The deploy noise is a far stronger attractor than
+Day 12 suggested: both confidently-wrong runs built their causal story on a *random* seeded deploy
+with a suggestive message ("refactor configuration loading", "raise worker concurrency"), reaching
+0.92 and 0.85 on a service with no signal measured at it at all. And `POST /admin/fault` traffic
+is visible in the agent's own metrics, which tells it precisely when a fault was injected — an
+eval-integrity leak that should be closed before Phase 5 scores anything.
+
+**What the contingency analysis now says.** The plan held a `decide` rule in reserve: cap
+confidence when the blamed service has no `ok=True` signal measured at it. It is clearly indicated
+— all three runs blamed a service on absence plus a deploy correlation — but it **cannot close
+this gate**, because it caps confidence without changing which service gets named. Run 1 would
+become "downstream-dep at 0.5": honest, still failing. Closing the gate needs either a
+discriminator the model will use reliably, or a victim system whose `timeout` fault is not
+genuinely ambiguous with a downstream outage. `CLAUDE.md` and `ARCHITECTURE.md` remain untouched
+for the third session running, which is the correct outcome of an open gate rather than an
+oversight.

@@ -6,6 +6,86 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
+**Date:** Day 14 (Phase 3 - closing the 3.2 `timeout` miss)
+
+**Status: the gate is still OPEN. Three live `timeout` runs, three wrong services.**
+`CLAUDE.md` and `ARCHITECTURE.md` untouched for the third session running. Tests went
+684 -> **693 passed, 20 skipped**; injector 45 and api 13/1 unchanged. Roughly **$1.01**
+of live runs, stopped on budget before the remaining three faults were regressed.
+
+**Six commits** on `phase-3.3-write-tools-policy-gate`, all offline-green:
+
+| | commit | what |
+|---|---|---|
+| 1 | `feat(tools)` | disclose when a metric series stopped reporting |
+| 2 | `feat(tools)` | summarise the series that moved, not the first one |
+| 3 | `feat(graph)` | the opening sweep reads the whole chain |
+| 4 | `feat(prompts)` | asserted blame is not a measured signal |
+| 5 | `refactor(prompts)` | top confidence band anchored to where the signal was measured |
+| 6 | `feat(prompts)` | read simultaneous silence by how far a trace travels |
+| 7 | `fix(tools)` | silence only counts for a series that was actually reporting |
+
+### The three live runs
+
+| run | diagnosed | truth | conf | trace call? | what poisoned it |
+|---|---|---|---|---|---|
+| 1 | downstream-dep | api-gateway | 0.92 | no | noise-deploy story |
+| 2 | data-service | api-gateway | 0.50 | **yes** | p99 line was 100% `/admin/fault` |
+| 3 | data-service / `resource_exhaustion` | api-gateway | 0.85 | no | rate line was 100% noise |
+
+**None of the three was a clean test of the fix** - each was poisoned by a different
+evidence defect, and two of those defects were introduced by this session's own commits
+(see *Known defect* below). A fourth run was voided outright: the whole stack had exited
+255 from a host suspend before it started, and the agent correctly reported "all services
+stopped reporting", capped itself at 0.35 and escalated.
+
+### What is now known that was not
+
+- **The tool was lying.** `summarise` described a stale, all-`NaN` series as a healthy
+  trend (`flat at 0.00495` for a series silent seven minutes). Day 12's model was
+  **reasoning correctly from false evidence**. Fixed in commit 1 and confirmed live.
+- **api-gateway's telemetry cannot separate two different faults.** Byte-identical under a
+  gateway `timeout` and a downstream-dep `latency` fault. Any diagnosis drawn only from the
+  alerting service is a coin flip by construction - which is why the sweep is now unscoped.
+- **The trace rule works but is followed inconsistently.** Run 2 made the call and stated
+  the dead-end correctly - *"never reached data-service or downstream-dep"* - then blamed
+  data-service anyway. Runs 1 and 3 never made the call.
+- **Deploy noise is a much stronger attractor than Day 12 suggested.** Both confidently-wrong
+  runs built their story on a *random* seeded deploy with a suggestive message, reaching
+  0.92 and 0.85 on a service with no signal measured at it.
+
+### Known defect, shipped, fix drafted but NOT implemented
+
+**`_change` in `agent/tools/metrics.py` compares only the first and last points.** `rate()`
+series begin and end at zero around any bounded incident, so a series that went 0 -> 22 -> 0
+scores **0.0000** and looks inert. Measured on run 3's payload: the series carrying the
+incident scored 0.0000 while `/health` and `/admin/fault` took all three summary slots.
+`max - min` gives exactly the right three, and both are already computed over the full
+pre-downsample point list. **This is the first thing to do next session** - it was presented
+as a step and stopped on budget before approval, so it went uncommitted deliberately. The
+failing test is written out in the Next Session section below.
+
+### Corrections to earlier project history
+
+- **`docker compose restart prometheus` does NOT wipe the TSDB.** Day 12's `decisions.md`
+  entry calls it "a clean reset precisely because the TSDB is ephemeral" and that is wrong -
+  a restart preserves the container's writable layer; only `down`/`rm` discards it. Run 3's
+  30m window reached back far enough to swallow run 2's entire fault. Use
+  `docker compose rm -sf prometheus && docker compose up -d prometheus`.
+- **`seed_deploys.py` appends unless given `--clear`.** Running the recipe twice leaves 12
+  noise deploys in the 120m window instead of 6, and a denser ledger makes a spurious deploy
+  correlation easier to find. Run 1 was affected.
+
+### New tech debt found, not acted on
+
+**`POST /admin/fault` traffic is visible in the agent's own metrics**, which tells it
+precisely when a fault was injected. That is an eval-integrity leak and should be closed
+before Phase 5 scores anything.
+
+---
+
+## Previous Session
+
 **Date:** Day 13 (Phase 3 - sub-phase 3.3: write tools + the deterministic policy gate)
 
 **What was done:**
@@ -115,7 +195,7 @@ a readable report, and the gate still consulted and recorded.
 
 ---
 
-## Previous Session
+## Earlier Session
 
 **Date:** Day 12 (Phase 3 — sub-phase 3.2: the live rehearsal)
 
@@ -199,7 +279,7 @@ rows plus 2 correlated.
 
 ---
 
-## Earlier Session
+## Earlier Session (Day 11)
 
 **Date:** Day 11 (Phase 3 — sub-phase 3.2: move the model call onto Bedrock)
 
@@ -288,26 +368,63 @@ the second iteration.
 
 ## Next Session
 
-**Pick up at: closing the `timeout` miss.** It is now the only thing standing between this
-project and marking Stage 3 complete - 3.3 is built, tested and proven live, and 3.2's gate
-is the one still open. It reproduced again on Day 13: the run pointed downstream rather than
-at api-gateway. Until it is resolved, `CLAUDE.md` and `ARCHITECTURE.md` stay as they are.
+**1. Implement the drafted `_change` fix first. It is free, it is confirmed against live
+data, and no further live run is worth anything until it is in.** The current ranking scored
+run 3's most important series at exactly zero. Failing test, ready to paste into
+`agent/tests/test_metrics_parse.py`:
 
-It matters more now than it did on Day 12. The policy gate acts on `hypothesis.service`, so
-a loop that names the wrong service hands the gate the wrong target. Rule 6
-(`target_mismatch`) contains the damage - it refuses a proposal aimed at a service the
-diagnosis did not blame - but a confidently wrong diagnosis aimed *consistently* at the wrong
-service would pass that rule and be judged on the wrong topology.
+```python
+def test_a_series_that_rose_and_fell_is_ranked_by_how_far_it_travelled():
+    """rate() series begin and end at zero around any bounded incident, so
+    ranking on the difference between the endpoints scores the busiest series
+    in the payload at exactly zero. Measured on the third live rehearsal: the
+    series carrying the incident scored 0.0000 and the summary's three slots
+    went to /health and /admin/fault."""
+    raw = _matrix(
+        ("quiet-throughout", [0.4, 0.4, 0.4, 0.4, 0.4]),
+        ("rose-and-fell", [0.0, 20.0, 22.0, 20.0, 0.0]),   # endpoints identical
+    )
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(metric="http_requests_total", step_seconds=MATRIX_STEP_SECONDS),
+        series, window=_requested_window(raw),
+    )
 
-**1. Characterise it before designing anything.** Re-run 2-3 times and see whether it lands
-on `data-service` every time or only sometimes - that decides whether the fix is a prompt
-change, a `decide` rule, or nothing at all. The recipe, with Day 13's two corrections baked
-in (one fault, ~6 min):
+    assert text.index("rose-and-fell") < text.index("quiet-throughout")
+```
+
+The implementation is one line in `agent/tools/metrics.py`: `_change` returns
+`series.max - series.min` instead of `abs(series.latest - series.points[0].value)`.
+Commit as `fix(tools): rank a series by how far it travelled, not where it ended`.
+
+**2. Then re-run the gate — but decide first what it would take to pass it.** The honest
+reading after three runs is that the remaining gap may not be closable with evidence and
+prompt levers alone:
+
+- **The plan's contingency #1 (a `decide` cap when the blamed service has no `ok=True`
+  signal measured at it) is clearly indicated but cannot close this gate.** It caps
+  confidence without changing which service gets named. Run 1 becomes "downstream-dep at
+  0.5" — honest, still failing `service == "api-gateway"`. Worth doing for honesty; do not
+  expect it to turn the gate green.
+- **The fault itself is genuinely ambiguous, and that is a victim-system property.** Under
+  this stack's `timeout` fault the gateway never calls upstream at all — it sleeps and
+  raises — so downstream traffic goes to zero, which is exactly what a downstream outage
+  looks like. A *realistic* gateway timeout (gateway calls upstream, upstream answers
+  normally, gateway times out on its own budget) would leave data-service serving happily
+  and make the discriminator unambiguous. Changing
+  `services/api-gateway/app/main.py` to do that is a bigger decision than a bug fix — it
+  changes what the fault means — but it is the one change that would make the right answer
+  derivable from the telemetry rather than from one trace call the model makes only
+  sometimes.
+
+**3. The corrected run recipe** (one fault, ~6 min). Three corrections over Day 13's:
 
 ```bash
 set -a; . ./.env; set +a              # nothing in this repo loads .env
 for p in 8001 8002 8003; do curl -s -X DELETE http://localhost:$p/admin/fault; done
-docker compose restart prometheus     # clean 30m window; the sweep anchors to *now*
+python injector/seed_deploys.py --clear --noise 6 --hours 2   # --clear: it APPENDS otherwise
+docker compose rm -sf prometheus && docker compose up -d prometheus  # restart does NOT wipe
+sleep 5
 python injector/traffic.py --target api-gateway --rps 5 --duration 340 &
 sleep 120                             # healthy baseline, so "this changed" is visible
 python injector/inject.py --fault timeout --target api-gateway --duration 180 --no-deploy &
@@ -316,23 +433,34 @@ sleep 100                             # 60s rate window now fully inside the fau
 PROMETHEUS_URL=http://localhost:9090 python -m agent.graph.run \
     --alert eval/scenarios/gateway-timeout.json --json > out.json
 wait $INJECT                          # NEVER skip this - see below
+tail -1 injector/ground_truth.jsonl   # check EVERY run; a missing row means a void run
 ```
 
-Two traps, both of which cost runs on Day 13. **`wait` on the injector is not optional**: a
-backgrounded `inject.py` killed when the shell exits never reverts the fault and never writes
-its ground-truth row, so the fault stays live and silently contaminates the next run. And the
-fault duration must be *shorter* than the gap between runs, or run N's fault is still active
-during run N+1's baseline - 180s against this recipe, not 300s.
+Four traps, all of which cost runs across Day 13 and Day 14:
 
-Then check against `tail -1 injector/ground_truth.jsonl`. The substantive question is
-unchanged: the agent had evidence that data-service was *healthy* (p99 falling, no errors)
-and named it anyway, on the strength of api-gateway's `"upstream timeout calling
-data-service"` log string. Any fix should make the loop weigh gathered evidence against a log
-message's implied blame - not just harden the prompt against this one sentence.
+- **`wait` on the injector is not optional.** A backgrounded `inject.py` killed when the
+  shell exits never reverts the fault and never writes its ground-truth row, so the fault
+  stays live and silently contaminates the next run.
+- **The fault duration must be shorter than the gap between runs** — 180s, not 300s.
+- **`docker compose restart prometheus` does not wipe the TSDB** (Day 12's entry is wrong
+  about this). A restart keeps the container's writable layer. Run 3's 30m window swallowed
+  run 2's whole fault.
+- **`seed_deploys.py` appends without `--clear`**, so running the recipe twice doubles the
+  noise density.
 
-Note the deploy ledger decays: `seed_deploys.py --noise N --hours 2` must be re-run if more
-than ~2h have passed, or `query_deploy_history` sees an empty window again
+**Also check the stack is actually alive before each run** (`docker compose ps`). A host
+suspend killed all four app containers with exit 255 mid-session and voided a paid run; the
+symptom is `exited (255)` with no trace in the container logs.
+
+Note the deploy ledger decays: `seed_deploys.py --clear --noise N --hours 2` must be re-run
+if more than ~2h have passed, or `query_deploy_history` sees an empty window again
 (`SWEEP_DEPLOYS_MINUTES` is 120).
+
+**4. Regress the other three faults.** `latency`, `bad_config` and `memory` have *not* been
+re-run since these seven commits landed, and commits 2, 3 and 7 change what every
+investigation sees. `bad_config` is the one to watch: it depends on `unparsed_count` being
+the gateway's only signal, and a chain-wide metric sweep now also puts data-service's 500s
+in the baseline.
 
 **2. The `SRE_AGENT_LIVE` graph smoke test** - one gated run in
 `agent/tests/test_smoke_live.py` asserting invariants only (terminates, produces a report,
@@ -364,10 +492,16 @@ likely lever on the temporal half of the `timeout` miss.
   `injector/ground_truth.jsonl`. Needed before Phase 5.
 - `agent-api` `/metrics` + Alertmanager (existing tech debt).
 
-**Note:** `CLAUDE.md` and `ARCHITECTURE.md` were deliberately **not** updated on Day 13, for
-the reason the 3.3 plan itself set out: components 4, 5 and 6 flip to Complete, and Stage 3
-closes, only once *both* the 3.2 and 3.3 gates are closed. 3.3's is; 3.2's is not. Those
-files change only when the architecture genuinely does, and an open gate is not that.
+**Note:** `CLAUDE.md` and `ARCHITECTURE.md` have deliberately **not** been updated on Day 13
+or Day 14, for the reason the 3.3 plan itself set out: components 4, 5 and 6 flip to
+Complete, and Stage 3 closes, only once *both* the 3.2 and 3.3 gates are closed. 3.3's is;
+3.2's is not, and Day 14's three runs did not close it. Those files change only when the
+architecture genuinely does, and an open gate is not that.
+
+**New tech debt from Day 14, for `CLAUDE.md`'s list once it is next touched:**
+`POST /admin/fault` traffic is visible in the agent's own metrics, so the agent can see
+exactly when a fault was injected. An eval-integrity leak; close it before Phase 5 scores
+anything.
 
 **Running the write side by hand** (the 3.1 discipline, applied to actions). From the host,
 export the per-service URLs first - `service_url()` defaults to compose names, which do not

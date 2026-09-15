@@ -34,3 +34,7 @@ eval/results/
 
 # Injector runtime output (ground truth is a generated log, not source)
 injector/ground_truth.jsonl
+
+# Live-run artifacts (per-session, never committed)
+scratch/
+graphify-out/
