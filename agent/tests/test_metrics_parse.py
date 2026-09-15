@@ -2,6 +2,7 @@
 
 import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,17 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def _fixture(name: str) -> dict:
     return json.loads((FIXTURES / f"{name}.json").read_text())
+
+
+def _requested_end(raw: dict) -> datetime:
+    """The end of the window Prometheus was asked about.
+
+    Every step Prometheus was asked for comes back in ``values``, NaN included,
+    so the last requested timestamp is the last one in the payload - which is
+    exactly what a series has to keep up with to count as still reporting.
+    """
+    last = max(float(ts) for r in raw["data"]["result"] for ts, _ in r["values"])
+    return datetime.fromtimestamp(last, tz=timezone.utc)
 
 
 # ── happy path ───────────────────────────────────────────────────────
@@ -146,11 +158,12 @@ def test_stats_are_computed_before_downsampling():
 # ── summary ──────────────────────────────────────────────────────────
 
 def test_summary_names_the_metric_service_and_movement():
+    raw = _fixture("prom_range_histogram_p99")
     q = MetricsQuery(
         metric="http_request_duration_seconds", service="downstream-dep", path="/data"
     )
-    series, _, _ = parse_range_response(_fixture("prom_range_histogram_p99"))
-    text = summarise(q, series)
+    series, _, _ = parse_range_response(raw)
+    text = summarise(q, series, window_end=_requested_end(raw))
     assert "http_request_duration_seconds" in text
     assert "downstream-dep" in text
     assert "p99" in text
@@ -159,33 +172,71 @@ def test_summary_names_the_metric_service_and_movement():
 def test_summary_for_no_series_states_what_matched_nothing():
     """Absence is evidence — the summary must say what was looked for."""
     q = MetricsQuery(metric="http_requests_total", service="api-gateway", path="/nonexistent")
-    text = summarise(q, [])
+    text = summarise(q, [], window_end=datetime.now(timezone.utc))
     assert "no" in text.lower()
     assert "http_requests_total" in text
     assert "/nonexistent" in text
 
 
 def test_summary_reports_a_flat_series_as_flat():
+    raw = _fixture("prom_range_gauge")
     q = MetricsQuery(metric="config_version", service="data-service")
-    series, _, _ = parse_range_response(_fixture("prom_range_gauge"))
-    text = summarise(q, series)
+    series, _, _ = parse_range_response(raw)
+    text = summarise(q, series, window_end=_requested_end(raw))
     assert text  # a single sentence, always
     assert "\n" not in text
     assert "flat at" in text
 
 
 def test_float_noise_is_not_described_as_movement():
-    """0.00495 vs 0.0049499999999999995 is a constant series, not a change."""
+    """0.00495 vs 0.0049499999999999995 is a constant series, not a change.
+
+    Read at the last point it actually reported, so the constancy is what is
+    under test rather than the staleness.
+    """
+    raw = _fixture("prom_range_histogram_p99")
     q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
-    series, _, _ = parse_range_response(_fixture("prom_range_histogram_p99"))
-    text = summarise(q, series)
+    series, _, _ = parse_range_response(raw)
+    text = summarise(q, series, window_end=series[0].points[-1].ts)
     assert "flat at" in text
     assert "from" not in text
 
 
+# ── the stale series ─────────────────────────────────────────────────
+
+def test_a_series_that_stopped_reporting_says_so_instead_of_reporting_a_stale_value():
+    """The strongest refutation must not arrive disguised as reassurance. With
+    no samples, histogram_quantile returns NaN, the NaN points are dropped, and
+    the surviving pre-fault points describe a calm, healthy trend that is two
+    minutes out of date."""
+    raw = _fixture("prom_range_histogram_p99")
+    q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
+    series, _, _ = parse_range_response(raw)
+    text = summarise(q, series, window_end=_requested_end(raw))
+
+    assert "stopped reporting" in text
+    assert "10:55:39" in text          # the last point that actually reported
+    assert "flat at" not in text       # ... and no trend claimed for a dead series
+    assert "fell from" not in text
+
+
+def test_a_series_still_reporting_is_described_as_a_trend():
+    """The disclosure must not swallow the normal case."""
+    raw = _fixture("prom_range_counter_rate")
+    q = MetricsQuery(metric="http_requests_total", service="api-gateway")
+    series, _, _ = parse_range_response(raw)
+    text = summarise(q, series, window_end=_requested_end(raw))
+
+    assert "stopped reporting" not in text
+    assert "fell from" in text
+
+
 def test_summaries_and_notes_are_ascii():
     """probe.py prints these to a Windows console; a stray em-dash mangles."""
-    series, _, notes = parse_range_response(_fixture("prom_range_histogram_p99"))
+    raw = _fixture("prom_range_histogram_p99")
+    series, _, notes = parse_range_response(raw)
+    end = _requested_end(raw)
     q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
-    for text in [summarise(q, series), summarise(q, []), *notes]:
+    for text in [summarise(q, series, window_end=end),
+                 summarise(q, [], window_end=end), *notes]:
         text.encode("ascii")

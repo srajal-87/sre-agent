@@ -384,21 +384,59 @@ def _is_flat(series: MetricSeries) -> bool:
     return span <= scale * 1e-9
 
 
-def _describe(series: MetricSeries) -> str:
-    """One clause describing where a series went."""
+def _stale_by_seconds(series: MetricSeries, window_end: datetime) -> float:
+    """How far the newest surviving point lags the end of the window."""
+    return (window_end - series.points[-1].ts).total_seconds()
+
+
+def _is_stale(series: MetricSeries, window_end: datetime) -> bool:
+    """True when the series stopped reporting before the window ended.
+
+    MIN_RATE_WINDOW_SECONDS is the principled threshold rather than a new magic
+    number: it is the rate window, so a gap wider than it means any rate over
+    this series already reads zero. Below it the series is merely a scrape or
+    two behind, which is normal.
+    """
+    return _stale_by_seconds(series, window_end) > MIN_RATE_WINDOW_SECONDS
+
+
+def _describe(series: MetricSeries, window_end: datetime) -> str:
+    """One clause describing where a series went.
+
+    A series whose points stop well before the window ends did not "stay flat" -
+    it stopped reporting, most often because histogram_quantile over an empty
+    bucket returned NaN and those points were dropped. Describing a trend from
+    the surviving, pre-fault points presents a stale value as a current one,
+    which reads as reassurance exactly when it is the opposite.
+    """
+    if _is_stale(series, window_end):
+        last = series.points[-1].ts
+        gap = _stale_by_seconds(series, window_end) / 60.0
+        return (
+            f"stopped reporting - last sample {last.strftime('%Y-%m-%dT%H:%M:%SZ')} "
+            f"(value {_fmt(series.latest)}), no samples in the {gap:.1f}m since"
+        )
+
     first = series.points[0].value
-    last = series.latest
+    last_value = series.latest
     if _is_flat(series):
-        return f"flat at {_fmt(last)}"
-    direction = "rose" if last > first else "fell" if last < first else "moved"
+        return f"flat at {_fmt(last_value)}"
+    direction = "rose" if last_value > first else "fell" if last_value < first else "moved"
     return (
-        f"{direction} from {_fmt(first)} to {_fmt(last)} "
+        f"{direction} from {_fmt(first)} to {_fmt(last_value)} "
         f"(min {_fmt(series.min)}, max {_fmt(series.max)})"
     )
 
 
-def summarise(q: MetricsQuery, series: list[MetricSeries]) -> str:
-    """One line, written for the LLM to reason on."""
+def summarise(
+    q: MetricsQuery, series: list[MetricSeries], *, window_end: datetime
+) -> str:
+    """One line, written for the LLM to reason on.
+
+    ``window_end`` is required rather than defaulted: a series is only stale
+    relative to the window that was asked for, and a default would silently
+    describe a dead series as a healthy one at every call site that forgot it.
+    """
     spec = KNOWN_METRICS.get(q.metric, {})
     aggregation = q.aggregation or DEFAULT_AGGREGATION.get(spec.get("type", ""), "")
     filters = [f"{k}={v}" for k, v in
@@ -419,8 +457,11 @@ def summarise(q: MetricsQuery, series: list[MetricSeries]) -> str:
     point_count = sum(len(s.points) for s in series)
     tail = f" {len(series)} series, {point_count} points." if len(series) > 1 else ""
     return (
-        f"{aggregation} {q.metric} for {label_bits or scope} {_describe(lead)} "
-        f"over {q.lookback_minutes}m.{tail}"
+        # The window goes before the description, not after: a stale series ends
+        # its clause on an absolute time, and "no samples in the 7.0m since over
+        # 30m" does not parse.
+        f"{aggregation} {q.metric} for {label_bits or scope} over "
+        f"{q.lookback_minutes}m: {_describe(lead, window_end)}.{tail}"
     )
 
 
@@ -527,7 +568,7 @@ async def query_metrics(
     series, truncated, notes = parse_range_response(payload)
     return MetricsResult(
         tool=TOOL_NAME,
-        summary=summarise(q, series),
+        summary=summarise(q, series, window_end=window.end),
         source=source,
         query=promql,
         window=window,
