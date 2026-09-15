@@ -206,6 +206,15 @@ def test_the_rubric_reserves_the_top_band_for_two_independent_signals():
     assert "independent" in lowered
 
 
+def test_the_top_band_requires_both_signals_to_be_measured_at_the_component():
+    """Consistent with the evidence rule above it: a signal measured at one
+    component does not corroborate a diagnosis about a different one, however
+    well the two stories fit together."""
+    lowered = CONFIDENCE_RUBRIC.lower()
+
+    assert "measured at" in lowered
+
+
 # -- citation ---------------------------------------------------------
 
 def test_the_prompt_demands_citation_by_literal_query_string():

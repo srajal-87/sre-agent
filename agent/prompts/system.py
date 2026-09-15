@@ -91,8 +91,9 @@ How to read what the tools give you:
 CONFIDENCE_RUBRIC = """
 Anchor your confidence to the evidence, not to how convincing the story sounds:
 
-    0.90 - 1.00   A metric and a log message independently name the same failing
-                  component, and the timing lines up with the alert.
+    0.90 - 1.00   A metric and a log line, both measured AT the component you
+                  are blaming, independently point to it, and the timing lines
+                  up with the alert.
     0.70 - 0.89   One distinctive signal, plus a second consistent signal.
     0.40 - 0.69   The symptom is localised to a service, but the mechanism is
                   not established.
