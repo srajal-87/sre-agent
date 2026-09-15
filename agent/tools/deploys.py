@@ -197,7 +197,8 @@ class DeployRepository:
 _PASSWORD_IN_DSN = re.compile(r"(://[^:@/\s]+):[^@/\s]*@")
 
 
-def _redact(text: str) -> str:
+def redact(text: str) -> str:
+    """Strip the password out of any DSN in ``text``. Shared with rollback_deploy."""
     return _PASSWORD_IN_DSN.sub(r"\1:***@", text)
 
 
@@ -338,7 +339,7 @@ async def query_deploy_history(
     except Exception as exc:  # noqa: BLE001 — a tool reports, it does not raise
         return failure(
             tool=TOOL_NAME, source=source, query=query_text, window=window,
-            error=_redact(str(exc)),
+            error=redact(str(exc)),
             summary=(
                 "Could not read the deploy ledger, so deploy history is "
                 "unavailable; rely on metrics and logs instead."

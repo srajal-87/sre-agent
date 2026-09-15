@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from agent import config
 from agent.tools.base import TimeWindow, ToolResult, failure, utc_now
+from agent.tools.containers import PROJECT_LABEL, SERVICE_LABEL, connect
 
 TOOL_NAME = "query_logs"
 
@@ -37,9 +38,6 @@ MAX_UNPARSED_SAMPLES = 3
 # container.logs() buffers its whole output in memory, so this is a hard ceiling
 # on how much any one container can hand back.
 MAX_TAIL = 2000
-
-PROJECT_LABEL = "com.docker.compose.project"
-SERVICE_LABEL = "com.docker.compose.service"
 
 # Fields the JSON formatter always emits; anything else on a line is an extra
 # (delay_ms, config_version, method/path/status).
@@ -307,19 +305,6 @@ def resolve_window(
 # ── reading the containers ───────────────────────────────────────────
 
 
-def _connect():
-    """Build a Docker client from the environment.
-
-    The ``docker`` import is deliberately **inside** the function so that
-    ``import agent.tools.logs`` works on a machine with no Docker SDK and no
-    socket — the same "imports never fail" rule that lets api/app/config.py
-    default DATABASE_URL to "".
-    """
-    import docker
-
-    return docker.from_env()
-
-
 def _read_containers(client, project: str, services: list[str], window: TimeWindow):
     """Read and parse each service's stdout. Synchronous — call via to_thread.
 
@@ -432,7 +417,7 @@ async def query_logs(
     try:
         client = docker_client
         if client is None:
-            client = await asyncio.to_thread(_connect)
+            client = await asyncio.to_thread(connect)
         lines, container_notes = await asyncio.to_thread(
             _read_containers, client, project, services, window
         )

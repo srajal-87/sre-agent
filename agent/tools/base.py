@@ -108,6 +108,47 @@ class ToolResult(BaseModel):
     latency_ms: int = 0
 
 
+class ActionInput(BaseModel):
+    """Every action names the service it acts on.
+
+    Required, and on the base class, because the policy gate compares that
+    target against the service the hypothesis blamed — an action with no target
+    could not be checked.
+    """
+
+    service: str = Field(
+        description="The service to act on: api-gateway, data-service, or downstream-dep."
+    )
+
+
+class ActionResult(ToolResult):
+    """What an action did, or would have done.
+
+    Lives beside ``ToolResult`` rather than in ``actions.py`` so that each write
+    tool can import its envelope without importing the registry that imports
+    *it*. Everything ToolResult promises holds here too, the never-raises rule
+    included.
+
+    ``executed`` is the honest record of whether the world changed;
+    ``verification`` is the independent check afterwards, in the action's own
+    words ("health returned 200 after 1.2s"), so a report never rests on the
+    action merely claiming success.
+    """
+
+    executed: bool = False
+    dry_run: bool = False
+    target: str = ""
+    verification: str | None = None
+
+
+def action_query(name: str, arguments: ActionInput) -> str:
+    """The literal call issued, as the citation for this action."""
+    fields = ", ".join(
+        f"{k}={v}" for k, v in arguments.model_dump().items() if v is not None
+    )
+    return f"{name}({fields})"
+
+
 ResultT = TypeVar("ResultT", bound=ToolResult)
 
 

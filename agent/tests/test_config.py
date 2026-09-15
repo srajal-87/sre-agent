@@ -6,7 +6,18 @@ from types import SimpleNamespace
 
 import agent.config
 
-_CONSTANTS = ("PROMETHEUS_URL", "COMPOSE_PROJECT", "LOG_SERVICES", "DATABASE_URL")
+_CONSTANTS = (
+    "PROMETHEUS_URL",
+    "COMPOSE_PROJECT",
+    "LOG_SERVICES",
+    "DATABASE_URL",
+    "AGENT_ALLOW_WRITES",
+    "ACTION_TIMEOUT_SECONDS",
+    "AUTO_ACTION_CONFIDENCE",
+)
+
+_MANAGED = ("PROMETHEUS_URL", "COMPOSE_PROJECT", "AGENT_ALLOW_WRITES",
+            "ACTION_TIMEOUT_SECONDS", "AUTO_ACTION_CONFIDENCE")
 
 
 def _reload(**env) -> SimpleNamespace:
@@ -16,7 +27,7 @@ def _reload(**env) -> SimpleNamespace:
     singleton that the restoring reload below would otherwise mutate back to
     its defaults before the caller ever reads it.
     """
-    saved = {k: os.environ.get(k) for k in ("PROMETHEUS_URL", "COMPOSE_PROJECT")}
+    saved = {k: os.environ.get(k) for k in _MANAGED}
     try:
         for key in saved:
             os.environ.pop(key, None)
@@ -60,3 +71,78 @@ def test_database_url_is_reused_from_the_environment_not_redefined():
     """The agent reuses DATABASE_URL; it must be import-safe when unset."""
     cfg = _reload()
     assert isinstance(cfg.DATABASE_URL, str)
+
+
+# ── the write side ───────────────────────────────────────────────────
+
+def test_writes_are_off_unless_asked_for():
+    """The kill switch is a default, not a suggestion."""
+    cfg = _reload()
+    assert cfg.AGENT_ALLOW_WRITES is False
+
+
+def test_an_empty_value_does_not_turn_writes_on():
+    """AGENT_ALLOW_WRITES= in a .env must not read as truthy."""
+    cfg = _reload(AGENT_ALLOW_WRITES="")
+    assert cfg.AGENT_ALLOW_WRITES is False
+
+
+def test_the_word_false_does_not_turn_writes_on():
+    """bool("false") is True, which is exactly the trap worth a test."""
+    for value in ("false", "False", "0", "no", "off"):
+        assert _reload(AGENT_ALLOW_WRITES=value).AGENT_ALLOW_WRITES is False
+
+
+def test_the_usual_ways_of_saying_yes_turn_writes_on():
+    for value in ("1", "true", "TRUE", "yes", "on"):
+        assert _reload(AGENT_ALLOW_WRITES=value).AGENT_ALLOW_WRITES is True
+
+
+def test_the_action_timeout_has_a_usable_default():
+    cfg = _reload()
+    assert cfg.ACTION_TIMEOUT_SECONDS > 0
+
+
+def test_the_action_timeout_honours_the_env_override():
+    cfg = _reload(ACTION_TIMEOUT_SECONDS="5")
+    assert cfg.ACTION_TIMEOUT_SECONDS == 5.0
+
+
+def test_acting_on_the_world_has_a_higher_bar_than_ending_the_loop():
+    """0.90 vs CONFIDENCE_THRESHOLD's 0.85 - deliberately not the same number."""
+    cfg = _reload()
+    assert cfg.AUTO_ACTION_CONFIDENCE == 0.90
+    assert cfg.AUTO_ACTION_CONFIDENCE > agent.config.CONFIDENCE_THRESHOLD
+
+
+def test_the_auto_action_bar_honours_the_env_override():
+    """The 3.3 rehearsal exports 0.85; tuning it belongs in Phase 5."""
+    cfg = _reload(AUTO_ACTION_CONFIDENCE="0.85")
+    assert cfg.AUTO_ACTION_CONFIDENCE == 0.85
+
+
+# ── service_url ──────────────────────────────────────────────────────
+
+def test_a_service_url_defaults_to_the_compose_service_name():
+    """Same convention as PROMETHEUS_URL: the compose network is the default."""
+    assert agent.config.service_url("data-service") == "http://data-service:8000"
+
+
+def test_a_service_url_honours_the_per_service_env_override():
+    """How a tool run from the host reaches the published port."""
+    os.environ["DATA_SERVICE_URL"] = "http://localhost:8002/"
+    try:
+        assert agent.config.service_url("data-service") == "http://localhost:8002"
+    finally:
+        os.environ.pop("DATA_SERVICE_URL", None)
+
+
+def test_an_unknown_service_url_raises_naming_the_known_ones():
+    """A pure helper; the tool boundary is what converts this to ok=False."""
+    try:
+        agent.config.service_url("postgres")
+    except ValueError as exc:
+        assert "postgres" in str(exc)
+        assert "data-service" in str(exc)
+    else:
+        raise AssertionError("expected a ValueError")

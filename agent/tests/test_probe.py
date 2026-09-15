@@ -58,3 +58,72 @@ def test_the_printed_document_is_the_full_tool_result(capsys):
 
     for key in ("tool", "ok", "summary", "source", "query", "notes", "error", "latency_ms"):
         assert key in payload
+
+
+# ── the write side ───────────────────────────────────────────────────
+
+def test_list_actions_prints_every_action_with_its_description(capsys):
+    exit_code = probe.main(["--list-actions"])
+    out = capsys.readouterr().out
+
+    assert exit_code == 0
+    for name in ("restart_service", "toggle_config", "rollback_deploy"):
+        assert name in out
+
+
+def test_an_action_is_a_dry_run_unless_execute_is_passed(capsys):
+    """The default must never touch the stack, whatever the environment says."""
+    exit_code = probe.main(
+        ["--action", "restart_service", "--args", '{"service": "downstream-dep"}']
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["dry_run"] is True
+    assert payload["executed"] is False
+    assert "restart_service(service=downstream-dep)" in payload["summary"]
+
+
+def test_execute_turns_the_write_on_for_this_one_call(capsys):
+    """An unknown service, so the action refuses before reaching Docker."""
+    exit_code = probe.main(
+        ["--action", "restart_service", "--args", '{"service": "nope"}', "--execute"]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["dry_run"] is False
+    assert payload["executed"] is False
+    assert "nope" in payload["error"]
+
+
+def test_an_unknown_action_lists_the_available_ones(capsys):
+    exit_code = probe.main(["--action", "scale_up", "--args", '{"service": "x"}'])
+    out = capsys.readouterr().out
+
+    assert exit_code == 1
+    assert "restart_service" in out
+
+
+def test_malformed_action_args_are_reported_not_raised(capsys):
+    exit_code = probe.main(["--action", "restart_service", "--args", "{not json"])
+    out = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "json" in out.lower()
+
+
+def test_a_tool_and_an_action_at_once_is_a_usage_error(capsys):
+    exit_code = probe.main(["--tool", "query_metrics", "--action", "restart_service"])
+    out = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "--action" in out
+
+
+def test_naming_neither_is_a_usage_error(capsys):
+    exit_code = probe.main([])
+    out = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "--tool" in out and "--action" in out

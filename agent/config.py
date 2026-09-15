@@ -8,6 +8,22 @@ the unit tests free of Docker, Prometheus, and a database.
 
 import os
 
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _flag(name: str, default: bool = False) -> bool:
+    """Read a boolean env var by an explicit word list.
+
+    ``bool(os.getenv(...))`` would read "false" and "0" as True, which for a
+    switch that decides whether the agent may touch the running stack is one
+    typo away from a real restart.
+    """
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in _TRUTHY
+
+
 # Base URL of the Prometheus server, no trailing slash. The default is the
 # compose service name; override with PROMETHEUS_URL=http://localhost:9090 when
 # running a tool from the host rather than from inside the network.
@@ -21,6 +37,31 @@ COMPOSE_PROJECT = os.getenv("COMPOSE_PROJECT", "sre-agent")
 # The services whose stdout is worth reading. Deliberately excludes prometheus
 # and agent-api: the agent does not investigate itself.
 LOG_SERVICES = ["api-gateway", "data-service", "downstream-dep"]
+
+# Ports the victim services publish to the host, used only to document the
+# override in .env.example — inside the compose network every service listens
+# on 8000 and is addressed by name.
+SERVICE_PORTS = {"api-gateway": 8001, "data-service": 8002, "downstream-dep": 8003}
+
+
+def service_url(name: str) -> str:
+    """Return the base URL of a victim service, no trailing slash.
+
+    Defaults to the compose service name, exactly like PROMETHEUS_URL: inside
+    the network that is what resolves. Running a tool from the host instead,
+    override per service with e.g. DATA_SERVICE_URL=http://localhost:8002.
+
+    Raises for an unknown name — a pure helper, so the tool boundary is what
+    turns this into an ``ok=False`` observation.
+    """
+    if name not in SERVICE_PORTS:
+        raise ValueError(
+            f"unknown service '{name}'; known: {sorted(SERVICE_PORTS)}"
+        )
+    override = os.getenv(name.upper().replace("-", "_") + "_URL")
+    if override and override.strip():
+        return override.strip().rstrip("/")
+    return f"http://{name}:8000"
 
 # Reused verbatim from the API layer rather than redefined, so both read the one
 # Supabase DSN. Empty by default; the deploy tool reports a readable error
@@ -83,3 +124,24 @@ WALL_CLOCK_CAP_SECONDS = float(os.getenv("WALL_CLOCK_CAP_SECONDS", "120"))
 
 # Consecutive failed model calls before the run is abandoned. One is a blip.
 MAX_CONSECUTIVE_LLM_ERRORS = int(os.getenv("MAX_CONSECUTIVE_LLM_ERRORS", "2"))
+
+# -- the write side ---------------------------------------------------
+
+# The kill switch. Off means the policy gate still runs and still records its
+# decision, but every action reports executed=False, dry_run=True. Nothing in
+# the stack is touched unless this is deliberately turned on.
+AGENT_ALLOW_WRITES = _flag("AGENT_ALLOW_WRITES")
+
+# Ceiling on one write action, verification included. A container restart plus
+# a health poll is seconds; this is the "something is wedged" bound.
+ACTION_TIMEOUT_SECONDS = float(os.getenv("ACTION_TIMEOUT_SECONDS", "30"))
+
+# The confidence an investigation must reach before the policy gate will act on
+# the world. Deliberately above CONFIDENCE_THRESHOLD (0.85): ending a loop and
+# restarting a service are not the same bet.
+#
+# Known tension, recorded rather than hidden: at 0.90 none of the Day 12
+# rehearsal runs would have auto-acted. 0.90 ships as the conservative default
+# and the 3.3 rehearsal exports 0.85 to prove the write path end to end. Tuning
+# it belongs in Phase 5, against data rather than a guess.
+AUTO_ACTION_CONFIDENCE = float(os.getenv("AUTO_ACTION_CONFIDENCE", "0.90"))
