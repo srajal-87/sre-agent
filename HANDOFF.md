@@ -6,6 +6,117 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
+**Date:** Day 13 (Phase 3 - sub-phase 3.3: write tools + the deterministic policy gate)
+
+**What was done:**
+
+Built 3.3 end to end across 17 TDD cycles and ran its live gate. **The write path is
+proven: the agent diagnosed a live `bad_config` fault, proposed `toggle_config`, the policy
+gate approved it, the action ran, and Prometheus confirms the fault cleared about a minute
+before the injector would have reverted it.** Tests went 450 -> **684 passed, 20 skipped**.
+
+Three commits on branch `phase-3.3-write-tools-policy-gate` (fast-forwards onto main):
+`feat(tools)` the write layer, `feat(policy)` the gate, `feat(graph)` the wiring.
+
+**The shape of it.** Three write actions (`restart_service`, `toggle_config`,
+`rollback_deploy`) live in `agent/tools/actions.py`, in an `ACTIONS` registry that is
+structurally separate from `TOOLS` - the model is handed the read-only investigation
+surface and *never* an action, guarded by `test_actions_registry.py`. It proposes an action
+by name in `update_hypothesis`, and a pure function in `agent/policy/` approves or denies.
+A new `act` node sits between `decide` and `finalize` on the stop path, which is what makes
+"one action per investigation" structural rather than a counter.
+
+### The live rehearsal: four dry runs, then two with writes on
+
+Dry runs first (writes off, the default), one per fault. **Every one was denied, each for a
+different rule, and the stack was provably untouched** - container start times unchanged,
+zero agent-written ledger rows.
+
+| Fault | Diagnosed | Conf | Proposed | Gate |
+|---|---|---|---|---|
+| `bad_config` (data-service) | OK | 0.85 | `rollback_deploy` | denied - `blast_radius` |
+| `latency` (downstream-dep) | OK | 0.85 | *nothing* | denied - `no_action_proposed` |
+| `memory` (downstream-dep) | OK | 0.6 capped | `restart_service`/downstream-dep | denied - `incomplete_run` |
+| `timeout` (api-gateway) | **wrong service again** | - | *nothing* | denied - `no_action_proposed` |
+
+Then, with `--allow-writes` and `AUTO_ACTION_CONFIDENCE=0.85`:
+
+- **Live approval.** `bad_config` -> diagnosed at 0.88 -> proposed `toggle_config` ->
+  approved -> executed. `config_errors_total` climbs to 3641 and goes **flat at 10:59:25Z**;
+  the injector's own revert was not due until ~11:00:25Z. The agent, not the injector,
+  stopped it. That is the independent confirmation the plan asked for.
+- **Live denial.** `timeout` on api-gateway with writes on: `escalate`, nothing run,
+  api-gateway's container start time unchanged. Caveat below.
+
+### Three findings, in order of how much they matter
+
+**1. Bare action names are not enough, and the rehearsal is what proved it.** The plan had
+the model propose from a schema *enum* only - names, no semantics - to avoid an answer key.
+But the prompt asks for "the narrowest action that addresses the mechanism", which cannot be
+judged from a name. Asked to remediate a configuration fault, the model proposed
+`rollback_deploy`: sensible if you have just blamed a deploy, and always denied. The fix
+(Step 17, added mid-rehearsal) draws a line the plan had collapsed: an **answer key** (this
+fault -> that action) must never reach the model, but an action's **semantics** (what it
+does) legitimately must. The `ACTIONS` descriptions - none of which names a fault type, and
+a test holds that line - are now published into the `proposed_action` schema, built from the
+registry so they cannot drift. The very next live run proposed `toggle_config` and was
+approved.
+
+**2. The plan's prediction table was wrong about the `timeout` case, and so is its rule
+order.** It predicted `restart_service` on api-gateway denying on `blast_radius`. It denies
+on `action_mismatch` first: `restart_service` does not address `timeout` in
+`ACTION_ADDRESSES`. The order is right and the prediction was not - "this would not have
+helped" belongs before "this is too risky", or you warn about the danger of something that
+was never the right move. Two related reorderings against the plan's table, both with tests:
+`unknown_action` before `blast_radius` (you cannot look up the radius of an action that does
+not exist), and `blast_radius` before `low_confidence` (a property of the action and the
+topology outranks one run's score).
+
+**3. `AGENT_ALLOW_WRITES` is not a policy rule.** The plan listed it as gate rule #1, but
+also wanted a four-fault dry rehearsal whose verdicts match the prediction table - and those
+two cannot both hold, because rule #1 would make every dry run report `writes_disabled` and
+prove nothing. The kill switch is enforced once, in `run_action`. The gate now reaches the
+same verdict either way, and an approved dry run reads honestly: `auto_remediate`, with
+`executed=False, dry_run=True` saying nothing happened.
+
+### What is NOT closed
+
+- **The 3.2 `timeout` miss is still open, and reproduced today** - the run pointed downstream
+  again rather than at api-gateway. Per the plan's own precondition, `CLAUDE.md` and
+  `ARCHITECTURE.md` were therefore **left untouched**: components 4, 5 and 6 still read as
+  they did, and Stage 3 is not marked complete. Note the coupling: the gate acts on
+  `hypothesis.service`, so a loop that names the wrong service hands the gate the wrong
+  target - rule 6 (`target_mismatch`) limits the damage but does not fix the diagnosis.
+- **A live `blast_radius` denial was observed only with writes OFF** (the `bad_config` dry
+  run). With writes on, both denials landed on `no_action_proposed`. The gap is not
+  meaningful - `act` never calls the executor on a denial, which is unit-tested and was
+  confirmed live by api-gateway going untouched - but it is not the literal assertion the
+  plan wrote, and a live blast-radius denial now needs the model to reach for a rollback,
+  which Step 17's semantics actively discourage.
+- **`latency` still proposes nothing**, even after Step 17. Plausibly correct conservatism
+  rather than a defect: the prompt says proposing nothing "is the right one more often than
+  not", and a log line reading "injected latency" does not obviously call for a restart.
+  Worth characterising in Phase 5 rather than tuning blind.
+
+### Two methodology traps, both of which bit today
+
+- **A backgrounded `inject.py` that is killed when the shell exits never reverts and never
+  writes its ground-truth row** - so the fault stays active and silently contaminates the
+  next run. Two runs had to be discarded and redone. Wait on the injector before the script
+  ends, and clear `/admin/fault` on all three services between runs.
+- **`docker compose restart prometheus` between runs is necessary but not sufficient.** The
+  fault duration must be shorter than the gap between runs, or run N's fault is still live
+  during run N+1's baseline. 180s works with the recipe below.
+
+**Tests:** agent **684 passed / 20 skipped** (was 450/20 - 234 new), injector 45, api 13
+passed / 1 skipped. Six live investigations cost roughly $0.85. A transient network drop took
+one run down mid-rehearsal, and the graph did exactly what it was built to do: `status=failed`,
+a readable report, and the gate still consulted and recorded.
+
+---
+
+## Previous Session
+
 **Date:** Day 12 (Phase 3 — sub-phase 3.2: the live rehearsal)
 
 **What was done:**
@@ -88,7 +199,7 @@ rows plus 2 correlated.
 
 ---
 
-## Previous Session
+## Earlier Session
 
 **Date:** Day 11 (Phase 3 — sub-phase 3.2: move the model call onto Bedrock)
 
@@ -123,72 +234,6 @@ change); `cost_usd` in the Sonnet range, not ~1.7x inflated; and `cache_read_tok
 the second iteration.
 
 ---
-
-## Earlier Session
-
-**Date:** Day 10 (Phase 3 — sub-phase 3.2: ReAct reasoning loop + LangGraph orchestration)
-
-**What was done:**
-
-Built the consumer of the 3.1 tool layer: a LangGraph state machine that takes an alert,
-drives the three read tools in a ReAct loop, and produces a diagnosis with a confidence
-score and citations that point at real queries. Built via TDD, one step at a time, from
-the plan in `~/.claude/plans/read-claude-md-and-handoff-md-rosy-pony.md`.
-
-```
-START -> gather_evidence -> reason -> decide -+-> gather_evidence
-          (deterministic)   (the one   (pure) |
-                            LLM call)         +-> finalize -> END
-```
-
-Twelve steps, each its own test-then-implement cycle:
-
-- **`agent/graph/state.py`** — `InvestigationState` (TypedDict + `operator.add` reducers) with
-  Pydantic values: `AlertSummary`, `Hypothesis`, `ToolCall`, `EvidenceEntry`, `StepRecord`,
-  `AssistantTurn`, `InvestigationReport`, plus `initial_state()`.
-- **`agent/graph/hypothesis.py`** — the synthetic `update_hypothesis` tool, deliberately
-  **not** in `TOOLS`.
-- **`agent/prompts/system.py`** — the cache-stable system prompt (~1050 tokens).
-- **`agent/graph/render.py`** — webhook -> `AlertSummary`, the alert brief, summary-first
-  evidence rendering.
-- **`agent/graph/messages.py`** — the message list, rebuilt from state each turn.
-- **`agent/graph/llm.py`** — `call_model` behind an injectable client, `tool_definitions()`
-  with the cache breakpoint, `estimate_cost()`.
-- **`agent/graph/nodes.py`** — `opening_sweep`, `gather_evidence`, `reason`, `decide`, `route`,
-  `finalize`.
-- **`agent/graph/__init__.py`** — `build_graph()`, `investigate()`, `RECURSION_LIMIT`.
-- **`agent/graph/run.py`** — the CLI, sibling of `agent/tools/probe.py`.
-- **`eval/scenarios/*.json`** — four Alertmanager payloads, one per injectable fault.
-- **`agent/config.py`** — `AGENT_MODEL`, `BEDROCK_REGION`, `AGENT_MAX_TOKENS`,
-  `AGENT_THINKING_BUDGET`, `MAX_TOOL_CALLS_PER_ITERATION`, and the seven stop-condition
-  constants.
-
-**Current state:**
-
-- Tests: **agent 449 passed, 20 skipped** (was 171 + 20; **278 new**), **injector 45**,
-  **api 13 passed, 1 skipped**. `services/*` not re-run this session (untouched).
-- Every new test runs offline: no API key, no Docker, no Postgres, no mocking library.
-  The seams are a `FakeModel` (a callable returning scripted `tool_use` turns) and a fake
-  `run_tool`.
-- New pins in `agent/requirements.txt`: **`anthropic==1.0.0`**, **`langgraph==1.2.11`**
-  (pulling `langchain-core==1.6.0`, `langsmith==0.11.1`). Installed in `.venv`.
-  `api/Dockerfile` already installs `agent/requirements.txt`, so `docker compose build`
-  picks them up.
-- **Nothing is committed.** All of 3.2 is in the working tree. Twelve commits' worth of
-  work, one per step; suggested messages are in the session transcript, or squash as
-  `feat(agent): add the LangGraph investigation loop`.
-- **The live rehearsal has NOT been run.** The graph has never made a real API call or run
-  against the live stack. That is the first thing the next session should do.
-
-**Blockers:** None. The one open decision is whether to enable server-side refusal
-fallbacks (see below).
-
-**Environment note:** `DATABASE_URL` must be the Supavisor **session pooler**
-DSN with the async driver — see the Day 9 entry in git history for why. The model call now
-goes to **Amazon Bedrock**: `.env` needs `AWS_BEARER_TOKEN_BEDROCK` and
-`AWS_REGION=eu-north-1`. That bearer token is **short-lived** (STS-backed, ~12h) — an
-expired one fails on auth in a way that reads like a client bug, so check the clock before
-blaming the code.
 
 ### Design decisions worth knowing before touching this code
 
@@ -225,65 +270,121 @@ blaming the code.
   to include them by default on Opus 5, but they require moving the core loop to
   `client.beta.messages` with a beta header, and `decide` already routes a refusal to a real
   report. Revisit if a refusal is ever seen live.
+- **The write actions are not in `TOOLS`, and the model can never call one.** `ACTIONS` is a
+  separate registry; the model only *proposes* an action name in `update_hypothesis`, and
+  `agent/policy/` decides. `test_actions_registry.py` holds both halves of that line: no
+  action in `TOOLS`, and an action name reaching the model only as the proposal enum.
+- **`AGENT_ALLOW_WRITES` is enforced in `run_action`, not in the gate.** The gate reaches the
+  same verdict either way, which is what makes a dry run across every fault worth running. An
+  approved dry run is `auto_remediate` with `executed=False, dry_run=True`.
+- **`ok` vs `verification` vs `action_taken`.** `ok` says the action did its job;
+  `verification` says whether the world got better (a restart that ran and left the service
+  sick is `ok=True` with a verification saying so - the opposite of "could not restart", and
+  they call for opposite next moves). `action_taken` is filled *only* when `executed` is
+  true, so the investigations table never claims an action the system did not take.
 - **Known limitation:** the sweep's metric and log calls use `lookback_minutes` (anchored to
   now inside the tool); only the deploy call is anchored to `reference_time`. Right for a live
   fault, wrong for replaying a hours-old incident. Fix is `since`/`until` on those calls.
 
 ## Next Session
 
-**Pick up at: closing the `timeout` miss.** The rehearsal ran (Day 12) and 3 of 4 faults
-passed; `timeout` names the wrong service. Until that is resolved the 3.2 gate is open and
-`CLAUDE.md` stays as-is.
+**Pick up at: closing the `timeout` miss.** It is now the only thing standing between this
+project and marking Stage 3 complete - 3.3 is built, tested and proven live, and 3.2's gate
+is the one still open. It reproduced again on Day 13: the run pointed downstream rather than
+at api-gateway. Until it is resolved, `CLAUDE.md` and `ARCHITECTURE.md` stay as they are.
 
-**1. Characterise the `timeout` miss before designing anything.** Re-run it 2-3 times and see
-whether it lands on `data-service` every time or only sometimes — that determines whether the
-fix is a prompt change, a `decide` rule, or nothing at all. The recipe (one fault, ~8 min):
+It matters more now than it did on Day 12. The policy gate acts on `hypothesis.service`, so
+a loop that names the wrong service hands the gate the wrong target. Rule 6
+(`target_mismatch`) contains the damage - it refuses a proposal aimed at a service the
+diagnosis did not blame - but a confidently wrong diagnosis aimed *consistently* at the wrong
+service would pass that rule and be judged on the wrong topology.
+
+**1. Characterise it before designing anything.** Re-run 2-3 times and see whether it lands
+on `data-service` every time or only sometimes - that decides whether the fix is a prompt
+change, a `decide` rule, or nothing at all. The recipe, with Day 13's two corrections baked
+in (one fault, ~6 min):
 
 ```bash
-set -a; . ./.env; set +a            # nothing in this repo loads .env
-docker compose restart prometheus   # clean 30m window; the sweep anchors to *now*
-python injector/traffic.py --target api-gateway --rps 5 --duration 420 &
-sleep 120                           # healthy baseline, so "this changed" is visible
-python injector/inject.py --fault timeout --target api-gateway --duration 300 --no-deploy &
-sleep 100                           # 60s rate window now fully inside the fault
+set -a; . ./.env; set +a              # nothing in this repo loads .env
+for p in 8001 8002 8003; do curl -s -X DELETE http://localhost:$p/admin/fault; done
+docker compose restart prometheus     # clean 30m window; the sweep anchors to *now*
+python injector/traffic.py --target api-gateway --rps 5 --duration 340 &
+sleep 120                             # healthy baseline, so "this changed" is visible
+python injector/inject.py --fault timeout --target api-gateway --duration 180 --no-deploy &
+INJECT=$!
+sleep 100                             # 60s rate window now fully inside the fault
 PROMETHEUS_URL=http://localhost:9090 python -m agent.graph.run \
     --alert eval/scenarios/gateway-timeout.json --json > out.json
+wait $INJECT                          # NEVER skip this - see below
 ```
 
-Then check against `tail -1 injector/ground_truth.jsonl`. The substantive question: the agent
-had evidence that data-service was *healthy* (p99 falling, no errors) and named it anyway,
-on the strength of api-gateway's `"upstream timeout calling data-service"` log string. Any
-fix should make the loop weigh gathered evidence against a log message's implied blame —
-not just harden the prompt against this one sentence.
+Two traps, both of which cost runs on Day 13. **`wait` on the injector is not optional**: a
+backgrounded `inject.py` killed when the shell exits never reverts the fault and never writes
+its ground-truth row, so the fault stays live and silently contaminates the next run. And the
+fault duration must be *shorter* than the gap between runs, or run N's fault is still active
+during run N+1's baseline - 180s against this recipe, not 300s.
+
+Then check against `tail -1 injector/ground_truth.jsonl`. The substantive question is
+unchanged: the agent had evidence that data-service was *healthy* (p99 falling, no errors)
+and named it anyway, on the strength of api-gateway's `"upstream timeout calling
+data-service"` log string. Any fix should make the loop weigh gathered evidence against a log
+message's implied blame - not just harden the prompt against this one sentence.
 
 Note the deploy ledger decays: `seed_deploys.py --noise N --hours 2` must be re-run if more
 than ~2h have passed, or `query_deploy_history` sees an empty window again
 (`SWEEP_DEPLOYS_MINUTES` is 120).
 
-**2. The `SRE_AGENT_LIVE` graph smoke test** — one gated run in
+**2. The `SRE_AGENT_LIVE` graph smoke test** - one gated run in
 `agent/tests/test_smoke_live.py` asserting invariants only (terminates, produces a report,
-citations resolve), never a specific diagnosis. Written but for the live suite; **not done**.
+citations resolve), never a specific diagnosis. Still **not done**.
 
-**3. Then sub-phase 3.3** — write tools + the deterministic policy gate.
+**3. Two loose ends from the 3.3 rehearsal**, neither blocking:
 
-**Also worth folding in when convenient:** the `latency` run mis-dated the correlated deploy
-(inferred a symptom onset rather than observing one). The `since`/`until` fix for the sweep's
-now-anchored metric and log calls — already on the known-limitations list — is the most
-likely lever on both that and the temporal half of the `timeout` miss.
+- **A live `blast_radius` denial with writes ON** was never observed - both writes-on denials
+  landed on `no_action_proposed`. It was observed with writes off. The mechanism is identical
+  either way (`act` never calls the executor on a denial), so this is about completing the
+  evidence, not about doubt.
+- **`latency` proposes no action at all**, even with the Step 17 action semantics published.
+  Possibly correct conservatism; do not tune it blind, characterise it in Phase 5 against the
+  false-autonomous-action metric, which is exactly what that metric is for.
 
-**Still deferred (explicitly out of scope for 3.2):**
+**Also worth folding in when convenient:** the `since`/`until` fix for the sweep's
+now-anchored metric and log calls - already on the known-limitations list - is the most
+likely lever on the temporal half of the `timeout` miss.
+
+**Still deferred (explicitly out of scope for 3.3):**
 - Wiring the graph into `POST /investigate` as a background task, and persisting the report.
-- LangSmith tracing (Phase 4).
+  Note `investigations` has `action_taken` and `action_result` columns that the report now
+  fills, and no column for `recommendation` or `policy_decision` - the latter is designed to
+  nest into the `evidence` jsonb.
+- LangSmith tracing (Phase 4). It cannot resolve from this host at present; the rehearsal ran
+  with `LANGCHAIN_TRACING_V2=false` to keep the output readable.
 - Raw-PromQL escape hatch, gated by an allow-list.
-- The injector's `ground_truth_*` dual-write to Postgres — still only in
+- The injector's `ground_truth_*` dual-write to Postgres - still only in
   `injector/ground_truth.jsonl`. Needed before Phase 5.
 - `agent-api` `/metrics` + Alertmanager (existing tech debt).
 
-**Note:** `CLAUDE.md` was deliberately **not** updated on Day 12. Components 4 and 5 still
-read "Built, live rehearsal pending" and Current Phase still points at 3.2, because the
-rehearsal did not fully pass. Flip both to Complete and move Current Phase to 3.3 once
-`timeout` matches ground truth — that file changes only when the architecture genuinely
-does, and a gate that is still open is not that.
+**Note:** `CLAUDE.md` and `ARCHITECTURE.md` were deliberately **not** updated on Day 13, for
+the reason the 3.3 plan itself set out: components 4, 5 and 6 flip to Complete, and Stage 3
+closes, only once *both* the 3.2 and 3.3 gates are closed. 3.3's is; 3.2's is not. Those
+files change only when the architecture genuinely does, and an open gate is not that.
+
+**Running the write side by hand** (the 3.1 discipline, applied to actions). From the host,
+export the per-service URLs first - `service_url()` defaults to compose names, which do not
+resolve outside the network:
+
+```bash
+export API_GATEWAY_URL=http://localhost:8001 \
+       DATA_SERVICE_URL=http://localhost:8002 \
+       DOWNSTREAM_DEP_URL=http://localhost:8003
+python -m agent.tools.probe --list-actions
+python -m agent.tools.probe --action restart_service --args '{"service":"downstream-dep"}'
+python -m agent.tools.probe --action restart_service --args '{"service":"downstream-dep"}' --execute
+```
+
+`--execute` writes even with `AGENT_ALLOW_WRITES` off, deliberately: that switch exists to
+stop the *agent* acting on its own judgement, and here a person typed the action, the target
+and the flag on one line.
 
 **To run tests:** from each of `services/*`, `injector/`, `api/`, and `agent/`:
 `e:/sre-agent/.venv/Scripts/python -m pytest`.
