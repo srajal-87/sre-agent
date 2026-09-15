@@ -447,17 +447,45 @@ def _change(series: MetricSeries) -> float:
     return abs(series.latest - series.points[0].value)
 
 
-def _notability(series: MetricSeries, window_end: datetime) -> tuple:
+# A series present for only a sliver of the window was never reporting
+# continuously, so its silence is its normal state rather than an event.
+# Measured against the live stack: a one-shot administrative endpoint, which
+# receives a request only when a fault is set or cleared, covers 3-7% of the
+# window and is stale by construction, while a service actually carrying
+# traffic covers 25-35%. The line goes between them.
+MIN_COVERAGE_FOR_STALENESS = 0.15
+
+
+def _coverage(series: MetricSeries, window: TimeWindow, step_seconds: int) -> float:
+    """What fraction of the window's expected points this series actually has.
+
+    Expected is capped at MAX_POINTS because a longer series is downsampled to
+    that ceiling - without the cap a densely-reporting series over a long window
+    would look sparse purely because it was thinned.
+    """
+    expected = min(MAX_POINTS, max(1.0, window.duration_minutes * 60.0 / step_seconds))
+    return len(series.points) / expected
+
+
+def _notability(
+    series: MetricSeries, window: TimeWindow, step_seconds: int
+) -> tuple:
     """Sort key: most notable first, and deterministic.
 
     A series that stopped reporting outranks one that merely moved - going from
     reporting to not reporting is the larger event, and its surviving points
-    barely move, so ranking on change alone would bury it. Ties break on the
-    label string so two identical investigations read identical evidence
-    regardless of the order Prometheus happened to return.
+    barely move, so ranking on change alone would bury it.
+
+    But only if it was reporting in the first place. A series that produced a
+    handful of samples across the window never established a signal to lose,
+    and because it is permanently stale it would otherwise hold the top slots
+    on every query forever. Ties break on the label string so two identical
+    investigations read identical evidence regardless of the order Prometheus
+    happened to return.
     """
+    established = _coverage(series, window, step_seconds) >= MIN_COVERAGE_FOR_STALENESS
     return (
-        0 if _is_stale(series, window_end) else 1,
+        0 if (_is_stale(series, window.end) and established) else 1,
         -_change(series),
         _label_bits(series),
     )
@@ -469,13 +497,14 @@ MAX_DESCRIBED_SERIES = 3
 
 
 def summarise(
-    q: MetricsQuery, series: list[MetricSeries], *, window_end: datetime
+    q: MetricsQuery, series: list[MetricSeries], *, window: TimeWindow
 ) -> str:
     """One line, written for the LLM to reason on.
 
-    ``window_end`` is required rather than defaulted: a series is only stale
-    relative to the window that was asked for, and a default would silently
-    describe a dead series as a healthy one at every call site that forgot it.
+    ``window`` is required rather than defaulted: a series is stale only
+    relative to the window that was asked for, and present-or-absent only
+    relative to its span. A default would silently describe a dead series as a
+    healthy one at every call site that forgot it.
     """
     spec = KNOWN_METRICS.get(q.metric, {})
     aggregation = q.aggregation or DEFAULT_AGGREGATION.get(spec.get("type", ""), "")
@@ -497,12 +526,14 @@ def summarise(
         lead = series[0]
         return (
             f"{aggregation} {q.metric} for {_label_bits(lead) or scope} over "
-            f"{q.lookback_minutes}m: {_describe(lead, window_end)}."
+            f"{q.lookback_minutes}m: {_describe(lead, window.end)}."
         )
 
-    ranked = sorted(series, key=lambda s: _notability(s, window_end))
+    ranked = sorted(
+        series, key=lambda s: _notability(s, window, q.step_seconds)
+    )
     described = "; ".join(
-        f"{_label_bits(s) or scope} {_describe(s, window_end)}"
+        f"{_label_bits(s) or scope} {_describe(s, window.end)}"
         for s in ranked[:MAX_DESCRIBED_SERIES]
     )
     point_count = sum(len(s.points) for s in series)
@@ -615,7 +646,7 @@ async def query_metrics(
     series, truncated, notes = parse_range_response(payload)
     return MetricsResult(
         tool=TOOL_NAME,
-        summary=summarise(q, series, window_end=window.end),
+        summary=summarise(q, series, window=window),
         source=source,
         query=promql,
         window=window,

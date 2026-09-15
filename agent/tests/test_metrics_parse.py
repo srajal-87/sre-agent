@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from agent.tools.base import TimeWindow
 from agent.tools.metrics import (
     MAX_POINTS,
     MAX_SERIES,
@@ -51,15 +52,19 @@ def _matrix(*labelled: tuple[str, list[float | None]]) -> dict:
     }
 
 
-def _requested_end(raw: dict) -> datetime:
-    """The end of the window Prometheus was asked about.
+def _requested_window(raw: dict) -> TimeWindow:
+    """The window Prometheus was asked about.
 
     Every step Prometheus was asked for comes back in ``values``, NaN included,
-    so the last requested timestamp is the last one in the payload - which is
-    exactly what a series has to keep up with to count as still reporting.
+    so the first and last timestamps in the payload bound the request - the end
+    is what a series has to keep up with to count as still reporting, and the
+    span is what says how much of it a series was actually present for.
     """
-    last = max(float(ts) for r in raw["data"]["result"] for ts, _ in r["values"])
-    return datetime.fromtimestamp(last, tz=timezone.utc)
+    stamps = [float(ts) for r in raw["data"]["result"] for ts, _ in r["values"]]
+    return TimeWindow(
+        start=datetime.fromtimestamp(min(stamps), tz=timezone.utc),
+        end=datetime.fromtimestamp(max(stamps), tz=timezone.utc),
+    )
 
 
 # ── happy path ───────────────────────────────────────────────────────
@@ -192,7 +197,7 @@ def test_summary_names_the_metric_service_and_movement():
         metric="http_request_duration_seconds", service="downstream-dep", path="/data"
     )
     series, _, _ = parse_range_response(raw)
-    text = summarise(q, series, window_end=_requested_end(raw))
+    text = summarise(q, series, window=_requested_window(raw))
     assert "http_request_duration_seconds" in text
     assert "downstream-dep" in text
     assert "p99" in text
@@ -201,7 +206,8 @@ def test_summary_names_the_metric_service_and_movement():
 def test_summary_for_no_series_states_what_matched_nothing():
     """Absence is evidence — the summary must say what was looked for."""
     q = MetricsQuery(metric="http_requests_total", service="api-gateway", path="/nonexistent")
-    text = summarise(q, [], window_end=datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc)
+    text = summarise(q, [], window=TimeWindow(start=now, end=now))
     assert "no" in text.lower()
     assert "http_requests_total" in text
     assert "/nonexistent" in text
@@ -211,7 +217,7 @@ def test_summary_reports_a_flat_series_as_flat():
     raw = _fixture("prom_range_gauge")
     q = MetricsQuery(metric="config_version", service="data-service")
     series, _, _ = parse_range_response(raw)
-    text = summarise(q, series, window_end=_requested_end(raw))
+    text = summarise(q, series, window=_requested_window(raw))
     assert text  # a single sentence, always
     assert "\n" not in text
     assert "flat at" in text
@@ -226,7 +232,10 @@ def test_float_noise_is_not_described_as_movement():
     raw = _fixture("prom_range_histogram_p99")
     q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
     series, _, _ = parse_range_response(raw)
-    text = summarise(q, series, window_end=series[0].points[-1].ts)
+    points = series[0].points
+    text = summarise(
+        q, series, window=TimeWindow(start=points[0].ts, end=points[-1].ts)
+    )
     assert "flat at" in text
     assert "from" not in text
 
@@ -241,7 +250,7 @@ def test_a_series_that_stopped_reporting_says_so_instead_of_reporting_a_stale_va
     raw = _fixture("prom_range_histogram_p99")
     q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
     series, _, _ = parse_range_response(raw)
-    text = summarise(q, series, window_end=_requested_end(raw))
+    text = summarise(q, series, window=_requested_window(raw))
 
     assert "stopped reporting" in text
     assert "10:55:39" in text          # the last point that actually reported
@@ -254,7 +263,7 @@ def test_a_series_still_reporting_is_described_as_a_trend():
     raw = _fixture("prom_range_counter_rate")
     q = MetricsQuery(metric="http_requests_total", service="api-gateway")
     series, _, _ = parse_range_response(raw)
-    text = summarise(q, series, window_end=_requested_end(raw))
+    text = summarise(q, series, window=_requested_window(raw))
 
     assert "stopped reporting" not in text
     assert "fell from" in text
@@ -275,7 +284,7 @@ def test_a_multi_series_summary_describes_the_biggest_movers_not_the_first():
     series, _, _ = parse_range_response(raw)
     text = summarise(
         MetricsQuery(metric="http_requests_total"), series,
-        window_end=_requested_end(raw),
+        window=_requested_window(raw),
     )
 
     assert "mover" in text
@@ -288,7 +297,7 @@ def test_a_multi_series_summary_describes_at_most_three():
     series, _, _ = parse_range_response(raw)
     text = summarise(
         MetricsQuery(metric="http_requests_total"), series,
-        window_end=_requested_end(raw),
+        window=_requested_window(raw),
     )
 
     assert text.count(";") == 2          # three clauses
@@ -307,11 +316,43 @@ def test_a_series_that_stopped_reporting_outranks_one_that_merely_moved():
     series, _, _ = parse_range_response(raw)
     text = summarise(
         MetricsQuery(metric="http_requests_total"), series,
-        window_end=_requested_end(raw),
+        window=_requested_window(raw),
     )
 
     assert text.index("went-silent") < text.index("big-mover")
     assert "stopped reporting" in text
+
+
+def test_a_barely_present_series_does_not_claim_the_summary_by_going_quiet():
+    """Measured live: a one-shot admin endpoint covers ~3% of the window and is
+    stale by construction, while a service carrying traffic covers ~25%. Without
+    a coverage gate the permanently-silent series take every slot and crowd out
+    the series that actually moved - which is exactly what happened on the
+    second live rehearsal, where all three described series were /admin/fault
+    and the model never saw the gateway's p99 pinned at its timeout budget."""
+    raw = _matrix(
+        ("one-shot-a", [1.0, 1.0] + [None] * 18),        # silent nearly throughout
+        ("one-shot-b", [1.0, 1.0] + [None] * 18),
+        ("one-shot-c", [1.0, 1.0] + [None] * 18),
+        ("carrying-traffic", [5.0] * 12 + [None] * 8),   # present, then silent
+        ("mover", [0.05] + [2.5] * 19),                  # never silent, large change
+    )
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(
+            metric="http_request_duration_seconds",
+            step_seconds=MATRIX_STEP_SECONDS,
+        ),
+        series,
+        window=_requested_window(raw),
+    )
+
+    # Both real series are described, and the permanently-silent ones rank
+    # below them rather than taking the slots.
+    assert "carrying-traffic" in text and "stopped reporting" in text
+    assert "mover" in text
+    assert text.index("carrying-traffic") < text.index("one-shot")
+    assert text.index("mover") < text.index("one-shot")
 
 
 def test_the_ordering_does_not_depend_on_the_order_prometheus_returned():
@@ -320,10 +361,10 @@ def test_the_ordering_does_not_depend_on_the_order_prometheus_returned():
     q = MetricsQuery(metric="http_requests_total")
     forward, _, _ = parse_range_response(_matrix(*pairs))
     backward, _, _ = parse_range_response(_matrix(*reversed(pairs)))
-    end = _requested_end(_matrix(*pairs))
+    win = _requested_window(_matrix(*pairs))
 
-    assert summarise(q, forward, window_end=end) == summarise(
-        q, backward, window_end=end
+    assert summarise(q, forward, window=win) == summarise(
+        q, backward, window=win
     )
 
 
@@ -331,8 +372,8 @@ def test_summaries_and_notes_are_ascii():
     """probe.py prints these to a Windows console; a stray em-dash mangles."""
     raw = _fixture("prom_range_histogram_p99")
     series, _, notes = parse_range_response(raw)
-    end = _requested_end(raw)
+    win = _requested_window(raw)
     q = MetricsQuery(metric="http_request_duration_seconds", service="downstream-dep")
-    for text in [summarise(q, series, window_end=end),
-                 summarise(q, [], window_end=end), *notes]:
+    for text in [summarise(q, series, window=win),
+                 summarise(q, [], window=win), *notes]:
         text.encode("ascii")
