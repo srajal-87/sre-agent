@@ -97,26 +97,21 @@ def test_the_sweep_asks_whether_traffic_is_flowing_and_whether_it_is_slow():
     assert sweep[1].arguments["aggregation"] == "p99"
 
 
-def test_the_metric_calls_target_the_alerting_service():
-    sweep = opening_sweep(AlertSummary(alertname="X", service="data-service"), T0)
-
-    assert sweep[0].arguments["service"] == "data-service"
-
-
-def test_an_alert_with_no_service_asks_about_all_of_them():
-    """A filter on None would match nothing, and empty reads as "no problem"."""
-    sweep = opening_sweep(AlertSummary(alertname="X"), T0)
-
-    assert "service" not in sweep[0].arguments
-
-
-def test_the_log_sweep_covers_every_service_not_just_the_alerting_one():
-    """The cause is usually downstream of the symptom."""
+def test_no_sweep_call_is_scoped_to_the_alerting_service():
+    """The cause is usually downstream of the symptom, and api-gateway's own
+    telemetry is identical under a gateway timeout and a downstream latency
+    fault - so a baseline scoped to the alerting service cannot separate them.
+    The discriminators are all one and two hops down."""
     sweep = opening_sweep(AlertSummary(alertname="X", service="api-gateway"), T0)
-    logs = sweep[2].arguments
 
-    assert "service" not in logs
-    assert set(logs["levels"]) == {"ERROR", "WARNING"}
+    for call in sweep:
+        assert "service" not in call.arguments, call.name
+
+
+def test_the_log_sweep_still_asks_for_both_error_levels():
+    sweep = opening_sweep(AlertSummary(alertname="X", service="api-gateway"), T0)
+
+    assert set(sweep[2].arguments["levels"]) == {"ERROR", "WARNING"}
 
 
 def test_the_deploy_sweep_is_anchored_to_the_reference_time():

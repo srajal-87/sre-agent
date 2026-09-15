@@ -81,8 +81,16 @@ def opening_sweep(alert: AlertSummary, reference_time: datetime) -> list[ToolCal
     off the most recent minutes, where an ongoing fault is most visible. The
     cost is that replaying a hours-old incident reads the wrong window; passing
     since/until on those calls is the fix if that ever matters.
+
+    Note on scope: **no call is filtered to the alerting service.** The cause is
+    usually downstream of the symptom, and api-gateway's telemetry is provably
+    identical under a gateway timeout fault and a downstream-dep latency fault -
+    same 504s, same upstream_timeouts_total, same ~2s duration bucket, same log
+    line. Nothing measured at the alerting service separates them; the
+    discriminators are one and two hops down (a request rate that goes to zero,
+    a latency series that stops reporting). Scoping the baseline to the alert
+    would withhold exactly the evidence that decides the question.
     """
-    service = {"service": alert.service} if alert.service else {}
     return [
         ToolCall(
             name="query_metrics",
@@ -90,9 +98,11 @@ def opening_sweep(alert: AlertSummary, reference_time: datetime) -> list[ToolCal
                 "metric": "http_requests_total",
                 "aggregation": "rate",
                 "lookback_minutes": SWEEP_METRICS_MINUTES,
-                **service,
             },
-            why="Establish whether traffic is still flowing and whether it is erroring.",
+            why=(
+                "Establish where traffic is still flowing along the chain and "
+                "where it is erroring."
+            ),
         ),
         ToolCall(
             name="query_metrics",
@@ -100,9 +110,11 @@ def opening_sweep(alert: AlertSummary, reference_time: datetime) -> list[ToolCal
                 "metric": "http_request_duration_seconds",
                 "aggregation": "p99",
                 "lookback_minutes": SWEEP_METRICS_MINUTES,
-                **service,
             },
-            why="Establish whether the service has become slow, and when.",
+            why=(
+                "Establish which services have become slow or stopped "
+                "reporting, and when."
+            ),
         ),
         ToolCall(
             name="query_logs",
@@ -110,8 +122,6 @@ def opening_sweep(alert: AlertSummary, reference_time: datetime) -> list[ToolCal
                 "levels": ["ERROR", "WARNING"],
                 "lookback_minutes": SWEEP_LOGS_MINUTES,
             },
-            # Deliberately unfiltered by service: the cause is usually
-            # downstream of the symptom.
             why="Look for errors across all three services, not just the alerting one.",
         ),
         ToolCall(
