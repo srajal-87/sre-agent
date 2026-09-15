@@ -174,6 +174,17 @@ def test_the_prompt_asks_for_falsifying_calls_not_confirming_ones():
 
 # -- evidence rules ---------------------------------------------------
 
+def test_the_evidence_rules_separate_asserted_blame_from_measured_signal():
+    """A log line naming another component is that component's accuser, not its
+    measurement. Under a gateway fault the gateway logs a hardcoded string
+    naming a service it never actually contacted, and that string was the only
+    thing in the whole telemetry set pointing there."""
+    lowered = EVIDENCE_RULES.lower()
+
+    assert "assertion" in lowered or "asserts" in lowered
+    assert "measure" in lowered
+
+
 def test_the_evidence_rules_carry_the_three_tool_layer_conventions():
     lowered = EVIDENCE_RULES.lower()
 

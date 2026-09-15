@@ -82,6 +82,10 @@ How to read what the tools give you:
     sample. Reason from the counts.
   - Timing is your strongest discriminator. A change that began before the
     alert can be a cause; one that began after it cannot.
+  - A log line is written by one service about what it believes happened. When
+    it names another component, that is an assertion of blame, not a measurement
+    of it. Treat it as a lead to check AT the named component. A component is
+    implicated only by a signal measured at it.
 """.strip()
 
 CONFIDENCE_RUBRIC = """
