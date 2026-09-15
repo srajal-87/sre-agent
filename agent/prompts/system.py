@@ -86,6 +86,11 @@ How to read what the tools give you:
     it names another component, that is an assertion of blame, not a measurement
     of it. Treat it as a lead to check AT the named component. A component is
     implicated only by a signal measured at it.
+  - When several components go quiet at once, silence does not say which one
+    broke: a component that failed and one that simply stopped being called look
+    identical from outside. Follow a single trace_id through the chain. The hop
+    where it stops is where the break is, and everything past that hop is quiet
+    only because nothing reached it.
 """.strip()
 
 CONFIDENCE_RUBRIC = """

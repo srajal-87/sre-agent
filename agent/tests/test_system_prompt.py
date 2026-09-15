@@ -185,6 +185,17 @@ def test_the_evidence_rules_separate_asserted_blame_from_measured_signal():
     assert "measure" in lowered
 
 
+def test_the_evidence_rules_say_how_to_read_simultaneous_silence():
+    """Absence at several components at once does not say which one broke: a
+    component that failed and one that simply stopped being called look
+    identical from outside. How far a trace travels is what separates them,
+    and it is measured at each hop rather than asserted by any of them."""
+    lowered = EVIDENCE_RULES.lower()
+
+    assert "trace_id" in lowered
+    assert "silent" in lowered or "quiet" in lowered
+
+
 def test_the_evidence_rules_carry_the_three_tool_layer_conventions():
     lowered = EVIDENCE_RULES.lower()
 
