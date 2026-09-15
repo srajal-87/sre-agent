@@ -2,17 +2,22 @@
 
     START -> gather_evidence -> reason -> decide -+-> gather_evidence
               (deterministic)   (the one   (pure) |
-                                LLM call)         +-> finalize -> END
+                                LLM call)         +-> act -> finalize -> END
+                                                     (the gate)
 
-Four nodes, **one** conditional edge, one model call per cycle. ``reason`` is
+Five nodes, **one** conditional edge, one model call per cycle. ``reason`` is
 the only node that talks to Claude; ``gather_evidence`` is an executor, not a
 decider; ``decide`` is a pure function of state and the only place the loop can
 end - including on the failure paths, which route *through* it rather than
 jumping to ``finalize``, so there is exactly one place that sets ``stop_reason``.
 
-Every stop path reaches ``finalize``. Nothing goes to END directly, so a run
-that times out or loses the API still produces a readable report rather than a
-null row.
+Every stop path reaches ``act`` and then ``finalize``. Nothing goes to END
+directly, so a run that times out or loses the API still produces a readable
+report rather than a null row - and every run, successful or not, carries the
+policy gate's recorded decision.
+
+``act`` sitting on the stop path is what makes "one action per investigation"
+structural: there is no path on which it runs twice.
 """
 
 from datetime import datetime
@@ -23,7 +28,7 @@ from langgraph.graph import END, START, StateGraph
 
 from agent import config
 from agent.graph.llm import call_model
-from agent.graph.nodes import decide, finalize, gather_evidence, reason, route
+from agent.graph.nodes import act, decide, finalize, gather_evidence, reason, route
 from agent.graph.state import (
     AlertSummary,
     InvestigationReport,
@@ -31,12 +36,16 @@ from agent.graph.state import (
     initial_state,
 )
 from agent.tools import run_tool
+from agent.tools.actions import run_action
 from agent.tools.base import utc_now
 
 # LangGraph counts every node execution ("super-step"), and one cycle is four of
 # them. Set above our own ceiling so that MAX_ITERATIONS always fires first:
 # GraphRecursionError would raise out of ainvoke and lose the whole run, whereas
 # our stop condition produces a report.
+#
+# act adds exactly one super-step to the worst case (20 -> 21, against 29): it
+# is on the stop path, so it runs once or not at all.
 RECURSION_LIMIT = config.MAX_ITERATIONS * 4 + 5
 
 
@@ -44,9 +53,14 @@ def build_graph(
     *,
     run: Callable = run_tool,
     call: Callable = call_model,
+    act_on: Callable = run_action,
     now: Callable[[], datetime] = utc_now,
 ):
     """Compile the graph, with its collaborators injected.
+
+    ``act_on`` is injected for the same reason as ``run`` and ``call``: with a
+    real default it needs no wiring in production, and with a fake in the tests
+    no suite can restart a container by accident.
 
     ``now`` is threaded into both ``decide`` and ``finalize`` rather than left
     to their defaults: they measure elapsed time against ``started_at``, and a
@@ -63,6 +77,9 @@ def build_graph(
     def _decide(state: InvestigationState) -> dict:
         return decide(state, now=now)
 
+    async def _act(state: InvestigationState) -> dict:
+        return await act(state, run_action=act_on)
+
     def _finalize(state: InvestigationState) -> dict:
         return finalize(state, now=now)
 
@@ -70,14 +87,16 @@ def build_graph(
     builder.add_node("gather_evidence", _gather)
     builder.add_node("reason", _reason)
     builder.add_node("decide", _decide)
+    builder.add_node("act", _act)
     builder.add_node("finalize", _finalize)
 
     builder.add_edge(START, "gather_evidence")
     builder.add_edge("gather_evidence", "reason")
     builder.add_edge("reason", "decide")
     builder.add_conditional_edges(
-        "decide", route, {"continue": "gather_evidence", "stop": "finalize"}
+        "decide", route, {"continue": "gather_evidence", "stop": "act"}
     )
+    builder.add_edge("act", "finalize")
     builder.add_edge("finalize", END)
 
     return builder.compile()
@@ -90,13 +109,14 @@ async def investigate(
     investigation_id: UUID | None = None,
     run: Callable = run_tool,
     call: Callable = call_model,
+    act_on: Callable = run_action,
     now: Callable[[], datetime] = utc_now,
 ) -> InvestigationReport:
     """Investigate one alert and return the report.
 
     The graph does not touch Postgres: the caller persists what comes back.
     """
-    graph = build_graph(run=run, call=call, now=now)
+    graph = build_graph(run=run, call=call, act_on=act_on, now=now)
     final = await graph.ainvoke(
         initial_state(
             alert,

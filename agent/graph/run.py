@@ -9,6 +9,12 @@ Usage:
     python -m agent.graph.run --alert eval/scenarios/gateway-timeout.json
     python -m agent.graph.run --alert eval/scenarios/downstream-memory.json --json
     python -m agent.graph.run --alert <file> --reference-time 2026-08-25T12:00:00Z
+    python -m agent.graph.run --alert <file> --allow-writes
+
+Without --allow-writes an approved action is a dry run: the policy gate still
+reaches its verdict and prints it, and nothing in the stack is touched. That is
+the useful default for a rehearsal - the gate's decision is what is being
+checked, not its effect.
 
 Exit codes: 0 = completed, 1 = the investigation failed, 2 = bad usage.
 """
@@ -18,11 +24,13 @@ import asyncio
 import json
 from datetime import datetime, timezone
 
+from agent import config
 from agent.graph import investigate
 from agent.graph.llm import call_model
 from agent.graph.render import summarise_alert
 from agent.graph.state import InvestigationReport
 from agent.tools import run_tool
+from agent.tools.actions import run_action
 
 
 def _fail(message: str) -> int:
@@ -62,6 +70,24 @@ def render_report(report: InvestigationReport, reference_time: datetime) -> str:
         f"status         : {report.status}",
         "",
     ]
+    decision = report.policy_decision
+    if decision is not None:
+        lines += [
+            "POLICY",
+            f"  proposed  : {decision.action or 'nothing'}"
+            + (f" on {decision.target}" if decision.target else ""),
+            f"  radius    : {decision.blast_radius or 'n/a'}",
+            f"  verdict   : {'approved' if decision.approved else 'denied'}"
+            + (f" ({decision.rule})" if decision.rule else ""),
+            f"  because   : {decision.reason}",
+        ]
+        if report.action_result:
+            lines += [
+                f"  action    : {report.action_taken or 'nothing was done'}",
+                f"  outcome   : {report.action_result}",
+            ]
+        lines += [""]
+
     lines += _bullets("citations", report.citations)
     lines += _bullets("ruled out", report.ruled_out)
     lines += _bullets("notes", report.notes)
@@ -79,7 +105,13 @@ def render_report(report: InvestigationReport, reference_time: datetime) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None, *, call=call_model, run=run_tool) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    call=call_model,
+    run=run_tool,
+    act_on=run_action,
+) -> int:
     parser = argparse.ArgumentParser(
         description="Investigate one alert and print the report."
     )
@@ -91,6 +123,11 @@ def main(argv: list[str] | None = None, *, call=call_model, run=run_tool) -> int
     )
     parser.add_argument(
         "--json", action="store_true", help="print the whole report as json"
+    )
+    parser.add_argument(
+        "--allow-writes",
+        action="store_true",
+        help="let an approved action actually run (default: dry run)",
     )
     args = parser.parse_args(argv)
 
@@ -114,7 +151,16 @@ def main(argv: list[str] | None = None, *, call=call_model, run=run_tool) -> int
         if alert.started_at.tzinfo is None:
             alert.started_at = alert.started_at.replace(tzinfo=timezone.utc)
 
-    report = asyncio.run(investigate(alert, call=call, run=run))
+    # run_action reads this constant at call time, so this is the override
+    # point. Restored afterwards: the flag is for one run, not for the rest of
+    # the process - which also keeps the in-process CLI tests honest.
+    previous_writes = config.AGENT_ALLOW_WRITES
+    if args.allow_writes:
+        config.AGENT_ALLOW_WRITES = True
+    try:
+        report = asyncio.run(investigate(alert, call=call, run=run, act_on=act_on))
+    finally:
+        config.AGENT_ALLOW_WRITES = previous_writes
 
     if args.json:
         print(json.dumps(report.model_dump(mode="json"), indent=2, default=str))

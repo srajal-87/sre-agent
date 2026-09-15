@@ -15,10 +15,12 @@ from agent.prompts import system
 from agent.prompts.system import (
     CONFIDENCE_RUBRIC,
     EVIDENCE_RULES,
+    REMEDIATION,
     SYSTEM_PROMPT,
     TOPOLOGY,
 )
 from agent.tools import TOOLS
+from agent.tools.actions import ACTIONS
 
 SERVICES = ["api-gateway", "data-service", "downstream-dep"]
 
@@ -65,12 +67,60 @@ def test_every_section_reaches_the_assembled_prompt():
 
 # -- role -------------------------------------------------------------
 
-def test_the_prompt_states_that_access_is_read_only():
-    """3.2 has no write tools; a model that proposes a restart is out of scope."""
+def test_the_prompt_states_that_investigation_access_is_read_only():
+    """Still true in 3.3: the tools the model calls cannot change anything. The
+    write actions are the policy gate's to run, never the model's."""
     lowered = SYSTEM_PROMPT.lower()
 
     assert "read-only" in lowered
-    assert "remediat" in lowered
+
+
+# -- remediation ------------------------------------------------------
+
+def test_the_remediation_section_reaches_the_assembled_prompt():
+    assert REMEDIATION.strip() in SYSTEM_PROMPT
+
+
+def test_the_prompt_asks_for_a_proposal_not_an_action():
+    lowered = REMEDIATION.lower()
+
+    assert "propose" in lowered
+    assert "proposed_action" in lowered and "action_target" in lowered
+
+
+def test_the_prompt_says_a_proposal_may_be_refused():
+    """The model must not treat a proposal as a decision it has already made."""
+    lowered = REMEDIATION.lower()
+
+    assert "refus" in lowered or "denied" in lowered
+    assert "policy" in lowered
+
+
+def test_the_prompt_requires_the_target_to_be_the_service_it_blamed():
+    assert "action_target" in REMEDIATION
+    assert "fault" in REMEDIATION.lower()
+
+
+def test_the_prompt_says_proposing_nothing_is_a_normal_outcome():
+    """Otherwise every run proposes something, and the gate carries all the weight."""
+    lowered = REMEDIATION.lower()
+
+    assert "nothing" in lowered
+
+
+def test_the_prompt_never_names_an_action():
+    """The action vocabulary comes from the update_hypothesis enum, exactly as
+    the fault vocabulary does. Naming one here starts an answer key."""
+    for name in ACTIONS:
+        assert name not in SYSTEM_PROMPT
+
+
+def test_the_prompt_never_pairs_an_action_with_a_mechanism():
+    """No 'restart it if it is leaking' - that is the policy table's job."""
+    lowered = SYSTEM_PROMPT.lower()
+
+    for word in ("restart", "roll back", "rollback", "reconfigure"):
+        assert word not in lowered
 
 
 # -- topology ---------------------------------------------------------

@@ -23,7 +23,8 @@ from agent.graph.state import (
     ToolCall,
     initial_state,
 )
-from agent.tools.base import ToolResult
+from agent.policy.table import PolicyDecision
+from agent.tools.base import ActionResult, ToolResult
 from agent.tools.metrics import MetricSeries, MetricsResult
 
 T0 = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
@@ -142,10 +143,12 @@ def test_the_citations_survive_into_the_report():
     assert _report().citations == [PROMQL]
 
 
-def test_the_recommendation_is_always_to_escalate_in_this_phase():
-    """There are no action tools yet; anything else would be a promise the
-    system cannot keep."""
-    assert _report().recommendation == "escalate"
+def test_an_investigation_with_no_policy_decision_escalates():
+    """Escalation is the resting state: only the gate can move it."""
+    report = _report()
+
+    assert report.recommendation == "escalate"
+    assert report.action_taken is None
 
 
 # -- the columns ------------------------------------------------------
@@ -262,3 +265,100 @@ def test_finalize_reports_the_status_decide_set():
     update = finalize(_state(status="failed"), now=lambda: T0)
 
     assert update["status"] == "failed"
+
+
+# -- the policy decision and the action -------------------------------
+
+def _decision(**overrides):
+    fields = {
+        "approved": True,
+        "recommendation": "auto_remediate",
+        "action": "toggle_config",
+        "target": "data-service",
+        "blast_radius": "low",
+        "reason": "low blast radius, addresses the diagnosed mechanism",
+    }
+    fields.update(overrides)
+    return PolicyDecision(**fields)
+
+
+def _action(**overrides):
+    fields = {
+        "tool": "toggle_config",
+        "summary": "Reset 'data-service' to its default runtime configuration.",
+        "source": "DELETE http://data-service:8000/admin/fault",
+        "query": "toggle_config(service=data-service)",
+        "target": "data-service",
+        "executed": True,
+        "verification": "/admin/fault returned 200",
+    }
+    fields.update(overrides)
+    return ActionResult(**fields)
+
+
+def test_an_approved_action_makes_the_report_recommend_remediation():
+    report = _report(_state(policy_decision=_decision(), action=_action()))
+
+    assert report.recommendation == "auto_remediate"
+    assert report.action_taken == "toggle_config(data-service)"
+    assert report.action_result.startswith("Reset 'data-service'")
+
+
+def test_a_denial_escalates_and_says_why():
+    decision = _decision(
+        approved=False, recommendation="escalate", blast_radius="high",
+        action="restart_service", target="api-gateway",
+        reason="restart_service on api-gateway is high blast radius",
+        rule="blast_radius",
+    )
+    report = _report(_state(policy_decision=decision))
+
+    assert report.recommendation == "escalate"
+    assert report.policy_decision.rule == "blast_radius"
+    assert report.action_taken is None
+    assert report.action_result is None
+
+
+def test_a_dry_run_records_the_approval_without_claiming_an_action():
+    """The gate said yes and nothing happened; both halves must be legible."""
+    action = _action(
+        executed=False, dry_run=True, verification=None,
+        summary="Dry run: would have run toggle_config(service=data-service).",
+    )
+    report = _report(_state(policy_decision=_decision(), action=action))
+
+    assert report.recommendation == "auto_remediate"
+    assert report.action_taken is None  # nothing was taken
+    assert "Dry run" in report.action_result
+
+
+def test_a_failed_action_is_recorded_rather_than_hidden():
+    action = _action(
+        ok=False, executed=False, error="docker api unavailable",
+        summary="Could not reach the Docker API, so nothing was restarted.",
+    )
+    report = _report(_state(policy_decision=_decision(), action=action))
+
+    assert report.action_taken is None
+    assert "Could not reach" in report.action_result
+
+
+def test_the_action_columns_stay_text_for_the_existing_schema():
+    report = _report(_state(policy_decision=_decision(), action=_action()))
+
+    assert isinstance(report.action_taken, str)
+    assert isinstance(report.action_result, str)
+
+
+def test_the_decision_survives_the_json_dump_into_the_evidence_column():
+    report = _report(_state(policy_decision=_decision(), action=_action()))
+
+    json.dumps(report.model_dump(mode="json"), allow_nan=False)
+
+
+def test_finalize_still_writes_nothing_anywhere():
+    """The one property that keeps every graph test free of a database."""
+    update = finalize(_state(policy_decision=_decision(), action=_action()),
+                      now=lambda: T0)
+
+    assert set(update) == {"report", "status", "latency_ms"}

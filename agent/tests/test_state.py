@@ -23,11 +23,14 @@ from agent.graph.state import (
     AlertSummary,
     EvidenceEntry,
     Hypothesis,
+    InvestigationReport,
     InvestigationState,
     StepRecord,
     ToolCall,
+    action_signature,
     initial_state,
 )
+from agent.policy.table import PolicyDecision
 from agent.tools.base import ToolResult
 from agent.tools.metrics import MetricSeries, MetricsResult
 
@@ -267,3 +270,80 @@ def test_a_step_record_with_no_hypothesis_reports_no_confidence():
     record = StepRecord(iteration=0)
 
     assert record.confidence is None
+
+
+# -- the report's action fields ---------------------------------------
+
+def test_a_report_escalates_by_default():
+    """Nothing proposed, nothing approved: escalation is the resting state."""
+    report = InvestigationReport(diagnosis="something is wrong")
+
+    assert report.recommendation == "escalate"
+    assert report.policy_decision is None
+    assert report.action_taken is None
+    assert report.action_result is None
+
+
+def test_a_report_can_recommend_auto_remediation():
+    report = InvestigationReport(diagnosis="d", recommendation="auto_remediate")
+
+    assert report.recommendation == "auto_remediate"
+
+
+def test_a_report_rejects_a_recommendation_outside_the_two_values():
+    """Free text here would make Phase 5 unable to count autonomous actions."""
+    with pytest.raises(ValidationError):
+        InvestigationReport(diagnosis="d", recommendation="probably restart it")
+
+
+def test_the_action_taken_reads_as_the_call_it_was():
+    report = InvestigationReport(
+        diagnosis="d",
+        recommendation="auto_remediate",
+        action_taken=action_signature("restart_service", "downstream-dep"),
+        action_result="Restarted 'downstream-dep'; it is serving again.",
+    )
+
+    assert report.action_taken == "restart_service(downstream-dep)"
+
+
+def test_the_action_columns_are_plain_text():
+    """They drop straight into the existing text columns on investigations."""
+    hints = get_type_hints(InvestigationReport)
+
+    assert hints["action_taken"] == (str | None)
+    assert hints["action_result"] == (str | None)
+
+
+def test_the_policy_decision_rides_along_as_a_typed_model():
+    decision = PolicyDecision(
+        approved=False,
+        recommendation="escalate",
+        action="restart_service",
+        target="api-gateway",
+        blast_radius="high",
+        reason="restart_service on api-gateway is high blast radius",
+        rule="blast_radius",
+    )
+    report = InvestigationReport(diagnosis="d", policy_decision=decision)
+
+    assert report.policy_decision.rule == "blast_radius"
+
+
+def test_a_report_with_a_decision_survives_a_strict_json_dump():
+    """It nests into the evidence jsonb; there is no column of its own."""
+    report = InvestigationReport(
+        diagnosis="d",
+        recommendation="auto_remediate",
+        policy_decision=PolicyDecision(
+            approved=True,
+            recommendation="auto_remediate",
+            action="toggle_config",
+            target="data-service",
+            blast_radius="low",
+            reason="all rules passed",
+        ),
+        action_taken=action_signature("toggle_config", "data-service"),
+    )
+
+    json.dumps(report.model_dump(mode="json"), allow_nan=False)

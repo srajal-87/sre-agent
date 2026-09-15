@@ -18,7 +18,7 @@ from agent.graph import RECURSION_LIMIT, build_graph, investigate
 from agent.graph.hypothesis import UPDATE_HYPOTHESIS_NAME
 from agent.graph.llm import ModelResponse
 from agent.graph.state import AlertSummary, InvestigationReport
-from agent.tools.base import ToolResult
+from agent.tools.base import ActionResult, ToolResult
 
 ALERT = AlertSummary(
     alertname="GatewayTimeouts",
@@ -281,3 +281,85 @@ def test_an_uncited_diagnosis_cannot_reach_a_confident_stop():
 def test_no_path_reaches_the_end_without_a_report():
     for model in (_timeout_script(), _endless_model()):
         assert _investigate(model)[0] is not None
+
+
+# -- the act node on the stop path ------------------------------------
+
+class ActionRunner:
+    """Stands in for run_action in the assembled graph."""
+
+    def __init__(self):
+        self.calls = []
+
+    async def __call__(self, name, arguments, **kwargs):
+        self.calls.append((name, arguments))
+        return ActionResult(
+            tool=name, summary=f"ran {name}", source="fake",
+            query=f"{name}(service={arguments['service']})",
+            target=arguments["service"], executed=True,
+        )
+
+
+def _remediable_script():
+    """A confident, well-cited diagnosis that proposes a low-radius action."""
+    block = _hypothesis_block(
+        fault_type="bad_config",
+        service="data-service",
+        statement="data-service is serving a corrupted downstream target",
+        confidence=0.95,
+        proposed_action="toggle_config",
+        action_target="data-service",
+    )
+    return ScriptedModel(
+        [block, _metrics_block("toolu_b1", "config_errors_total")],
+        [block],
+    )
+
+
+def test_a_confident_remediable_run_reaches_the_action():
+    actor = ActionRunner()
+    report = asyncio.run(
+        investigate(ALERT, call=_remediable_script(), run=Runner(), act_on=actor)
+    )
+
+    assert actor.calls == [("toggle_config", {"service": "data-service"})]
+    assert report.recommendation == "auto_remediate"
+    assert report.action_taken == "toggle_config(data-service)"
+
+
+def test_the_action_runs_exactly_once_however_long_the_loop_ran():
+    """One action per investigation is structural: act sits on the stop path."""
+    actor = ActionRunner()
+    asyncio.run(investigate(ALERT, call=_endless_model(), run=Runner(), act_on=actor))
+
+    assert len(actor.calls) <= 1
+
+
+def test_a_denied_run_touches_nothing_and_still_reports():
+    actor = ActionRunner()
+    report = asyncio.run(
+        investigate(ALERT, call=_timeout_script(), run=Runner(), act_on=actor)
+    )
+
+    assert actor.calls == []
+    assert report.recommendation == "escalate"
+    assert report.policy_decision is not None
+
+
+def test_a_failed_run_still_passes_through_the_gate():
+    class Broken:
+        async def __call__(self, **kwargs):
+            return ModelResponse(ok=False, error="APIConnectionError: no route")
+
+    actor = ActionRunner()
+    report = asyncio.run(
+        investigate(ALERT, call=Broken(), run=Runner(), act_on=actor)
+    )
+
+    assert actor.calls == []
+    assert report.policy_decision.rule in ("no_action_proposed", "incomplete_run")
+
+
+def test_the_recursion_limit_still_clears_the_extra_node():
+    """Worst case rises by one super-step: act runs once, on the stop path."""
+    assert RECURSION_LIMIT > config.MAX_ITERATIONS * 4 + 1

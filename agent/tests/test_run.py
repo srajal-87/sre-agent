@@ -13,10 +13,11 @@ from pathlib import Path
 
 import pytest
 
+from agent import config
 from agent.graph.llm import ModelResponse
 from agent.graph.render import summarise_alert
 from agent.graph.run import main
-from agent.tools.base import ToolResult
+from agent.tools.base import ActionResult, ToolResult
 
 SCENARIOS = Path(__file__).resolve().parents[2] / "eval" / "scenarios"
 
@@ -255,3 +256,103 @@ def test_a_scenario_file_runs_end_to_end(capsys):
 
     assert code == 0
     assert "timeout" in out
+
+
+# -- the policy gate and the write flag -------------------------------
+
+class Remediable:
+    """One confident, cited turn that proposes a low-radius action."""
+
+    async def __call__(self, **kwargs):
+        return ModelResponse(
+            content=[
+                {
+                    "type": "tool_use",
+                    "id": "toolu_h1",
+                    "name": "update_hypothesis",
+                    "input": {
+                        "fault_type": "bad_config",
+                        "service": "data-service",
+                        "statement": "data-service is serving a corrupted target",
+                        "confidence": 0.95,
+                        "rationale": "config_errors_total climbs from the alert on.",
+                        "citations": [QUERY],
+                        "proposed_action": "toggle_config",
+                        "action_target": "data-service",
+                    },
+                }
+            ],
+            stop_reason="tool_use",
+            cost_usd=0.01,
+        )
+
+
+class Actor:
+    """Stands in for run_action, and records the flag it saw."""
+
+    def __init__(self):
+        self.calls = []
+        self.writes_allowed = []
+
+    async def __call__(self, name, arguments, **kwargs):
+        self.calls.append((name, arguments))
+        self.writes_allowed.append(config.AGENT_ALLOW_WRITES)
+        return ActionResult(
+            tool=name, summary=f"ran {name}", source="fake",
+            query=f"{name}(service={arguments['service']})",
+            target=arguments["service"], executed=True,
+            verification="health returned 200",
+        )
+
+
+def _remediable(argv, capsys, actor=None):
+    actor = actor or Actor()
+    code = main(argv, call=Remediable(), run=_runner, act_on=actor)
+    return code, capsys.readouterr().out, actor
+
+
+def test_the_summary_names_the_action_and_its_blast_radius(alert_file, capsys):
+    _, out, _ = _remediable(["--alert", str(alert_file)], capsys)
+
+    assert "toggle_config" in out
+    assert "data-service" in out
+    assert "low" in out
+
+
+def test_the_summary_gives_the_gates_reason(alert_file, capsys):
+    """A denial that does not say why is not an audit trail."""
+    _, out = _main(["--alert", str(alert_file)], capsys=capsys)
+
+    assert "escalate" in out
+    assert "no_action_proposed" in out
+
+
+def test_the_summary_shows_what_the_action_reported(alert_file, capsys):
+    _, out, _ = _remediable(["--alert", str(alert_file)], capsys)
+
+    assert "ran toggle_config" in out
+
+
+def test_writes_are_off_unless_the_flag_is_passed(alert_file, capsys):
+    _, _, actor = _remediable(["--alert", str(alert_file)], capsys)
+
+    assert actor.writes_allowed == [False]
+
+
+def test_allow_writes_turns_them_on_for_this_run(alert_file, capsys):
+    _, _, actor = _remediable(["--alert", str(alert_file), "--allow-writes"], capsys)
+
+    assert actor.writes_allowed == [True]
+
+
+def test_the_flag_does_not_outlive_the_run(alert_file, capsys):
+    """One run, not the rest of the process."""
+    _remediable(["--alert", str(alert_file), "--allow-writes"], capsys)
+
+    assert config.AGENT_ALLOW_WRITES is False
+
+
+def test_the_gate_output_is_ascii(alert_file, capsys):
+    _, out, _ = _remediable(["--alert", str(alert_file)], capsys)
+
+    out.encode("ascii")

@@ -27,10 +27,13 @@ from agent.graph.state import (
     InvestigationState,
     StepRecord,
     ToolCall,
+    action_signature,
 )
+from agent.policy import evaluate
 from agent.prompts.system import SYSTEM_PROMPT
 from agent.tools import run_tool
-from agent.tools.base import ToolResult, failure, utc_now
+from agent.tools.actions import run_action as run_action_default
+from agent.tools.base import ActionResult, ToolResult, failure, utc_now
 
 EXECUTOR_SOURCE = "agent graph executor"
 
@@ -551,6 +554,83 @@ def route(state: InvestigationState) -> str:
     return "stop" if state["stop_reason"] else "continue"
 
 
+# -- act --------------------------------------------------------------
+
+
+async def act(
+    state: InvestigationState,
+    *,
+    run_action=run_action_default,
+    timeout_seconds: float | None = None,
+) -> dict:
+    """Ask the policy gate, and do exactly what it says.
+
+    Deliberately thin. Every judgement here comes from ``agent/policy/`` and
+    every effect from the injected executor, so this node contributes no rules
+    of its own - which is what lets the gate be reviewed as one artefact.
+
+    It sits on the stop path and therefore runs at most once, which is how "one
+    action per investigation" is structural rather than a counter someone has to
+    remember to check.
+
+    Nothing an action does can lose the investigation: an executor that raises
+    or hangs becomes an ``ok=False`` result and a note, because a completed
+    investigation whose report died to a Docker error is the worst outcome
+    available.
+    """
+    if timeout_seconds is None:
+        timeout_seconds = config.ACTION_TIMEOUT_SECONDS
+
+    decision = evaluate(
+        state["hypothesis"],
+        status=state["status"],
+        stop_reason=state["stop_reason"],
+    )
+
+    if not decision.approved:
+        return {
+            "policy_decision": decision,
+            "notes": [
+                f"policy denied {decision.action or 'any action'}"
+                f"{' on ' + decision.target if decision.target else ''}: "
+                f"{decision.reason} (rule={decision.rule})"
+            ],
+        }
+
+    name, target = decision.action, decision.target
+    query = f"{name}(service={target})"
+
+    try:
+        result = await asyncio.wait_for(
+            run_action(name, {"service": target}), timeout=timeout_seconds
+        )
+    except asyncio.TimeoutError:
+        result = failure(
+            tool=name, source=EXECUTOR_SOURCE, query=query,
+            error=f"{name} timed out after {timeout_seconds:.0f}s",
+            summary=(
+                f"{name} on '{target}' did not finish within {timeout_seconds:.0f}s "
+                f"and was abandoned; it may have completed."
+            ),
+            model=ActionResult,
+        )
+        result.target = target
+    except Exception as exc:  # noqa: BLE001 - an action must not kill the graph
+        result = failure(
+            tool=name, source=EXECUTOR_SOURCE, query=query,
+            error=f"{name} failed: {exc}",
+            summary=f"{name} on '{target}' could not be run: {exc}",
+            model=ActionResult,
+        )
+        result.target = target
+
+    return {
+        "policy_decision": decision,
+        "action": result,
+        "notes": [f"policy approved {name} on {target}: {result.summary}"],
+    }
+
+
 # -- finalize ---------------------------------------------------------
 
 
@@ -580,6 +660,18 @@ def finalize(state: InvestigationState, *, now=utc_now) -> dict:
     """
     hypothesis = state["hypothesis"]
     errors = state["errors"]
+    decision = state["policy_decision"]
+    action = state["action"]
+
+    # action_taken is filled only when something actually happened. A dry run, a
+    # failed action and a timeout all leave it null while action_result still
+    # says what was attempted - that column must never claim an action the
+    # system did not take.
+    action_taken = (
+        action_signature(action.tool, action.target)
+        if action is not None and action.executed
+        else None
+    )
 
     return {
         "report": InvestigationReport(
@@ -591,6 +683,10 @@ def finalize(state: InvestigationState, *, now=utc_now) -> dict:
             confidence=hypothesis.confidence if hypothesis else 0.0,
             citations=list(hypothesis.citations) if hypothesis else [],
             ruled_out=list(hypothesis.ruled_out) if hypothesis else [],
+            recommendation=decision.recommendation if decision else "escalate",
+            policy_decision=decision,
+            action_taken=action_taken,
+            action_result=action.summary if action is not None else None,
             evidence={
                 # The alert, so the row stands on its own without a join.
                 "alert": state["alert"].model_dump(mode="json"),

@@ -22,6 +22,7 @@ from agent.graph.hypothesis import (
 )
 from agent.graph.state import Hypothesis
 from agent.tools import TOOLS, probe
+from agent.tools.actions import ACTIONS
 
 FAULT_TYPES = {
     "timeout",
@@ -115,13 +116,73 @@ def test_the_schema_pins_the_closed_fault_type_enum():
 @pytest.mark.parametrize(
     "field",
     ["fault_type", "service", "statement", "confidence", "rationale", "citations",
-     "ruled_out"],
+     "ruled_out", "proposed_action", "action_target"],
 )
 def test_every_field_carries_a_description_the_model_can_act_on(field):
     schema = UPDATE_HYPOTHESIS["input_schema"]["properties"][field]
 
     assert len(schema.get("description", "")) > 20
     schema["description"].encode("ascii")
+
+
+# ── the proposal the policy gate judges ──────────────────────────────
+
+def test_the_schema_publishes_the_action_vocabulary():
+    """The model must not have to guess an action name, as with metric names."""
+    schema = UPDATE_HYPOTHESIS["input_schema"]["properties"]["proposed_action"]
+
+    assert set(schema["enum"]) == set(ACTIONS)
+
+
+def test_proposing_an_action_is_optional():
+    """A hypothesis at 0.3 confidence has nothing to propose yet."""
+    required = set(UPDATE_HYPOTHESIS["input_schema"].get("required", []))
+
+    assert "proposed_action" not in required
+    assert "action_target" not in required
+
+
+def test_a_hallucinated_action_does_not_cost_the_whole_turn():
+    """Typed str, not Literal: an unknown name must reach the gate as a denial,
+    not make parse_hypothesis return None the way a bad fault_type does."""
+    parsed = parse_hypothesis(
+        {
+            "fault_type": "memory",
+            "statement": "leak in downstream-dep",
+            "confidence": 0.9,
+            "rationale": "rss climbing",
+            "proposed_action": "scale_up",
+            "action_target": "downstream-dep",
+        }
+    )
+
+    assert parsed is not None
+    assert parsed.proposed_action == "scale_up"
+
+
+def test_a_bad_fault_type_still_costs_the_turn():
+    """The contrast that makes the line above a decision rather than an accident."""
+    assert parse_hypothesis(
+        {
+            "fault_type": "gremlins",
+            "statement": "x",
+            "confidence": 0.5,
+            "rationale": "y",
+        }
+    ) is None
+
+
+def test_the_schema_never_says_which_action_fits_which_fault():
+    """Vocabulary, not an answer key - the same rule the fault enum follows."""
+    text = json.dumps(UPDATE_HYPOTHESIS).lower()
+
+    for fault in ("bad_config", "timeout", "memory", "latency"):
+        assert fault not in text.split('"fault_type"')[0]
+    properties = UPDATE_HYPOTHESIS["input_schema"]["properties"]
+    for field in ("proposed_action", "action_target"):
+        description = properties[field]["description"].lower()
+        for fault in ("bad_config", "timeout", "memory", "latency", "resource"):
+            assert fault not in description
 
 
 def test_the_schema_does_not_hand_the_model_the_answer_key():

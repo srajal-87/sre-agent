@@ -26,7 +26,23 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, SerializeAsAny, computed_field, field_validator
 
-from agent.tools.base import ToolResult, utc_now
+from agent.policy.table import PolicyDecision, Recommendation
+from agent.tools.actions import ACTIONS
+from agent.tools.base import ActionResult, ToolResult, utc_now
+
+
+def action_signature(action: str, target: str) -> str:
+    """How an action reads in the ``action_taken`` column.
+
+    Deliberately not ``action_query``'s ``restart_service(service=x)``: that one
+    is a machine-checkable citation, this one is read by a person scanning a
+    table of investigations.
+    """
+    return f"{action}({target})"
+
+# Published to the model as a schema enum, so it proposes from the real action
+# names rather than inventing one. Typed str all the same - see Hypothesis.
+ACTION_NAMES = tuple(sorted(ACTIONS))
 
 # The closed vocabulary the agent may diagnose in. Closed so that Phase 5 can
 # score mechanically against incidents.ground_truth_fault; "unknown" exists so
@@ -112,6 +128,24 @@ class Hypothesis(BaseModel):
         description=(
             "Explanations the evidence excludes, each with the negative signal "
             "that excludes it, e.g. 'code change - no deploys in the window'."
+        ),
+    )
+
+    proposed_action: str | None = Field(
+        default=None,
+        description=(
+            "Optional. The single action you would take to remediate this, if "
+            "any. Propose the narrowest action that addresses the mechanism you "
+            "named, and only once you are confident. Your proposal is checked "
+            "against a deterministic policy and may be refused."
+        ),
+        json_schema_extra={"enum": sorted(ACTION_NAMES)},
+    )
+    action_target: str | None = Field(
+        default=None,
+        description=(
+            "Optional. The service the proposed action would act on. It must be "
+            "the service you named above as the location of the fault."
         ),
     )
 
@@ -228,9 +262,19 @@ class InvestigationReport(BaseModel):
     confidence: float = 0.0
     citations: list[str] = Field(default_factory=list)
     ruled_out: list[str] = Field(default_factory=list)
-    # Always "escalate" in 3.2: there are no action tools yet, so anything else
-    # would be a promise the system cannot keep.
-    recommendation: str = "escalate"
+    # The policy gate's verdict, never the model's. "escalate" is the resting
+    # state: it is what a report says unless every rule in agent/policy/ passed.
+    recommendation: Recommendation = "escalate"
+
+    # The gate's full reasoning, kept typed. There is no column for it - it
+    # nests into the evidence jsonb - but a denial that cannot be read back is
+    # not an audit trail.
+    policy_decision: PolicyDecision | None = None
+    # These two map to the existing text columns on investigations, so they are
+    # rendered strings rather than models: "restart_service(downstream-dep)"
+    # and the action's own one-line summary.
+    action_taken: str | None = None
+    action_result: str | None = None
 
     evidence: dict = Field(default_factory=dict)
     steps: int = 0
@@ -271,6 +315,10 @@ class InvestigationState(TypedDict):
 
     # -- current belief: overwritten each cycle --
     hypothesis: Hypothesis | None
+
+    # -- remediation: set once, by act, on the stop path --
+    policy_decision: PolicyDecision | None
+    action: ActionResult | None
 
     # -- control --
     iteration: int
@@ -322,6 +370,8 @@ def initial_state(
         notes=[],
         errors=[],
         hypothesis=None,
+        policy_decision=None,
+        action=None,
         iteration=0,
         pending_tool_calls=[],
         stop_reason=None,
