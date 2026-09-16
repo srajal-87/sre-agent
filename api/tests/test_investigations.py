@@ -1,3 +1,4 @@
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
@@ -41,6 +42,51 @@ class FakeRepository:
 
     async def get_investigation(self, investigation_id):
         return self.investigations.get(investigation_id)
+
+    async def mark_running(self, investigation_id) -> bool:
+        return self._update(investigation_id, {"status": "running"})
+
+    async def complete_investigation(self, investigation_id, row: dict) -> bool:
+        return self._update(investigation_id, row)
+
+    def _update(self, investigation_id, values: dict) -> bool:
+        """False for a row that is not there, like the real UPDATE's rowcount."""
+        stored = self.investigations.get(investigation_id)
+        if stored is None:
+            return False
+        stored.update(values)
+        stored["updated_at"] = datetime.now(timezone.utc)
+        return True
+
+
+def test_an_investigation_moves_from_pending_to_running_to_completed():
+    """The lifecycle the background task drives. Against the fake here; the
+    real UPDATE statements are exercised in test_integration_db.py."""
+    repo = FakeRepository()
+    app.dependency_overrides[get_repository] = lambda: repo
+    client = TestClient(app)
+    created = client.post("/investigate", json=json.loads(FIXTURE.read_text()))
+    investigation_id = uuid.UUID(created.json()["investigation_id"])
+
+    assert asyncio.run(repo.mark_running(investigation_id)) is True
+    assert repo.investigations[investigation_id]["status"] == "running"
+
+    assert asyncio.run(
+        repo.complete_investigation(
+            investigation_id, {"status": "completed", "diagnosis": "d"}
+        )
+    ) is True
+
+    stored = client.get(f"/investigations/{investigation_id}").json()
+    assert stored["status"] == "completed"
+    assert stored["diagnosis"] == "d"
+
+
+def test_writing_to_an_investigation_that_is_not_there_reports_it():
+    repo = FakeRepository()
+
+    assert asyncio.run(repo.mark_running(uuid.uuid4())) is False
+    assert asyncio.run(repo.complete_investigation(uuid.uuid4(), {})) is False
 
 
 def make_client() -> TestClient:
