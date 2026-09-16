@@ -29,7 +29,7 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 | 5 | Orchestration (LangGraph)| Built, live rehearsal pending |
 | 6 | Tool/Action Layer        | In progress |
 | 7 | Storage (Supabase)       | Complete    |
-| 8 | Audit Trail (LangSmith)  | Not started |
+| 8 | Audit Trail (LangSmith)  | Built, live rehearsal pending |
 | 9 | Evaluation Harness       | Not started |
 | 10| API Layer (FastAPI)      | In progress |
 | 11| Deployment (Fly.io)      | Not started |
@@ -37,12 +37,20 @@ An AI-powered SRE agent that investigates production incidents by querying logs,
 
 ## Current Phase
 
-**Phase 3 — Agent core.** Sub-phase 3.1 (the three read-only tools: `query_metrics`,
-`query_logs`, `query_deploy_history`) is **complete**. Sub-phase 3.2 (the ReAct loop and
-the LangGraph orchestration, in `agent/graph/`) is **built and fully tested offline but has
-never made a real API call** — the live four-fault rehearsal is the next thing to do, and
-until it passes the loop is unproven.
-**Then:** sub-phase 3.3 — write tools + policy gate.
+**Phase 4 — Audit trail**, with one Phase 3 gate still open behind it.
+
+- **3.1** (the three read-only tools) — complete.
+- **3.2** (the ReAct loop and LangGraph orchestration, in `agent/graph/`) — built and
+  rehearsed live, but **its `timeout` gate is still open**: three live runs blamed the wrong
+  service three times. Until that closes, the loop's diagnosis is unproven for that fault.
+- **3.3** (write tools + the deterministic policy gate) — built and proven live: the agent
+  diagnosed a `bad_config` fault, proposed `toggle_config`, the gate approved it, and
+  Prometheus confirmed the fault cleared before the injector would have reverted it.
+- **Phase 4** (LangSmith tracing + the Postgres per-investigation summary, `agent/graph/trace.py`
+  and `api/app/records.py`) — built and tested offline; **the live gate has not been run**.
+
+**Next:** one traced live run through `POST /investigate` that lands in both LangSmith and
+Postgres. See `HANDOFF.md` for the recipe and its traps.
 
 Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Phase 3 = agent core).
 
@@ -82,6 +90,15 @@ Phase numbering follows `README.md`'s roadmap (Phase 2 = storage + API shell, Ph
   alert detail, no host URL. Caching is a prefix match over `tools` → `system` → `messages`, so
   one varying byte there invalidates the cache on every call. Per-run values go in the first
   user message.
+- **Observability is fail-open.** Every function in `agent/graph/trace.py` degrades to "not
+  traced" rather than raising — a missing key, a failed import or a dead network must never
+  cost an investigation. It is the tool layer's never-raises rule applied to the audit trail.
+  Tracing is also *attached*, not ambient: the tracer is passed as a callback and the project
+  comes from `agent/config.py`, so a run is traced because the code asked for it.
+- **The trace id is minted before the run, not read back after it.** `run_id` is a valid
+  `RunnableConfig` key and becomes the root run's id, so the id is knowable even for a run that
+  fails — but it only reaches the report when the run was actually traced, because a report
+  must never cite a trace that does not exist.
 - The policy table in `agent/policy/` is always deterministic — never LLM-evaluated.
 - Ground truth for every injected fault is logged by the injector to a known location and to Postgres.
 - The fault injector controls faults via admin endpoints on victim services (e.g., `POST /admin/fault`).
@@ -139,8 +156,11 @@ python -m agent.tools.probe --tool query_logs --args '{"levels":["ERROR"],"lookb
 python -m agent.graph.run --alert eval/scenarios/gateway-timeout.json
 python -m agent.graph.run --alert eval/scenarios/downstream-memory.json --json
 
-# Record an incident (the graph is not wired into this endpoint yet)
+# Record an incident AND investigate it (the run happens in a background task;
+# the response is 201 pending, and the row fills in when the run finishes).
+# Set AGENT_AUTO_INVESTIGATE=false to get the old record-only stub behaviour.
 curl -X POST http://localhost:8000/investigate -H "Content-Type: application/json" -d '{"alerts": [...]}'
+curl http://localhost:8000/investigations/<investigation_id>
 
 # Run evaluation suite
 python eval/run_eval.py
@@ -156,11 +176,20 @@ python eval/run_eval.py
   gateway emits zero structured ERROR lines and zero 500s, only raw tracebacks, so `query_logs`'
   `unparsed_count` is its only signal (`agent/tests/test_logs_parse.py`). Fixing the gateway will
   fail those two tests by design — update them and this entry together.
-- **The graph is not wired into `POST /investigate`.** The endpoint still only opens a
-  `pending` stub; `agent/graph/` is reachable from the CLI (`python -m agent.graph.run`) and
-  nowhere else. `finalize` deliberately returns a pure `InvestigationReport` and persists
-  nothing — the caller is meant to write it — which is what keeps every graph test free of a
-  database.
+- **`POST /investigate` has never run the real graph.** The wiring is built and offline-tested
+  against a fake investigator, but every test that exercises the endpoint substitutes one —
+  `api/tests/conftest.py` turns `AGENT_AUTO_INVESTIGATE` off for the whole suite precisely so a
+  forgotten override cannot make a paid model call. The live rehearsal is outstanding.
+- **A retried webhook buys a second paid investigation.** There is no dedupe on
+  `POST /investigate`: two deliveries of the same alert open two incidents and run the agent
+  twice. Harmless today because there is no Alertmanager in the stack, and a blocker the moment
+  there is.
+- **An investigation in flight at shutdown is lost.** `BackgroundTasks` keeps it inside the
+  app's lifetime, but `dispose_engine()` closes the pool at shutdown and the row stays
+  `running` with nothing to finish it. A task registry is the fix if it ever matters.
+- **LangSmith cannot price Bedrock model ids**, so its UI shows `$0` for every run.
+  `estimate_cost` in `agent/graph/llm.py` is the only cost number that reaches Postgres, and
+  the one to trust.
 - **The opening sweep's metric and log calls are anchored to *now*, not to `reference_time`.**
   Only `query_deploy_history` uses the frozen incident time. That is right during a live fault
   (anchoring to the alert's start would cut off the most recent minutes, where an ongoing fault

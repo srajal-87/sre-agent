@@ -157,7 +157,7 @@ Each sub-phase is proven against the live stack before the next one assumes it w
 | 3.1 Read tools — `query_metrics`, `query_logs`, `query_deploy_history` (§6) | Stages 1 + 2 | ✅ |
 | 3.2 ReAct loop + LangGraph orchestration (§4, §5) | 3.1 | 🔄 |
 | 3.3 Write tools + deterministic policy gate (§6) | 3.2 | ⬜ |
-| Wire the graph into `POST /investigate` and persist the report | 3.3 + Stage 2 | ⬜ |
+| Wire the graph into `POST /investigate` and persist the report | 3.3 + Stage 2 | 🔄 |
 
 - **3.1's gate:** every tool individually exercisable against the live stack during a real
   injected fault (`python -m agent.tools.probe`) before the loop ever calls one.
@@ -166,16 +166,27 @@ Each sub-phase is proven against the live stack before the next one assumes it w
   the loop is unproven.
 - **3.3 depends on 3.2** because the policy gate consumes the *validated* confidence score that
   `decide` produces — not the model's self-reported number.
+- **The wiring row was built during Stage 4**, because persisting a per-investigation summary
+  and running the graph from the endpoint are the same job. `POST /investigate` now marks the
+  row `running`, investigates in a background task and writes the report back. Offline-tested
+  against a fake investigator; the endpoint has still never run the real graph.
 
-### Stage 4 — Audit trail ⬜
+### Stage 4 — Audit trail 🔄
 
 **Gate:** there are no traces until there are runs. Instrumenting a loop that has never executed
-measures nothing.
+measures nothing. That gate is satisfied — the loop has run live roughly a dozen times across
+Days 12–14.
 
 | Item | Depends on | Status |
 |---|---|---|
-| §8 LangSmith tracing tagged by `incident_id` | 3.2 | ⬜ |
-| §8 Postgres per-investigation summary (diagnosis, cost, latency) | 3.2 + Stage 2 | ⬜ |
+| §8 LangSmith tracing tagged by `incident_id` | 3.2 | 🔄 |
+| §8 Postgres per-investigation summary (diagnosis, cost, latency) | 3.2 + Stage 2 | 🔄 |
+
+- **Both rows are built and tested offline; neither has been proven live.** The stage's own
+  exit condition is one traced run that reaches both LangSmith and Postgres through
+  `POST /investigate`, and it has not been run. Applying the same standard 3.2 is held to.
+- **Stage 4 does not depend on 3.2's open `timeout` gate.** The trail records what happened,
+  right or wrong; a readable trace is precisely what Day 14's three poisoned runs lacked.
 
 ### Stage 5 — Evaluation ⬜
 

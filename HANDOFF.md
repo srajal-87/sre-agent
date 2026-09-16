@@ -6,6 +6,100 @@ This file carries context between Claude Code sessions. Update it at the end of 
 
 ## Last Session
 
+**Date:** Day 15 (Phase 4 - the audit trail: LangSmith tracing + the Postgres summary)
+
+**Status: built, offline-green, and NOT yet proven live. No live run was made and no money
+was spent.** Twelve TDD cycles, every one offline. Tests went agent 693 -> **744**, api
+13/1 -> **36 passed / 3 skipped**, injector 45 unchanged.
+
+**What exists now that did not.** An investigation mints its own trace id before it starts,
+runs under it as the LangSmith root run tagged `incident:<uuid>`, emits one span per model
+call (prompt, tool schemas, token usage) and one span per tool call *named for the tool*,
+carries that id into the report through every stop path including the failures, and - when
+triggered through `POST /investigate` - writes a queryable `investigations` row carrying
+diagnosis, confidence, cost, latency and the trace id linking the two.
+
+**The listed tech debt "the graph is not wired into `POST /investigate`" is closed in code.**
+The endpoint marks the row `running`, investigates in a `BackgroundTasks` task and writes the
+report back. It still answers `201 pending` immediately.
+
+### The commits (all on `phase-3.3-write-tools-policy-gate`, all offline-green)
+
+| | commit | what |
+|---|---|---|
+| 0 | `fix(tools)` | rank a series by how far it travelled, not where it ended |
+| 1 | `feat(config)` | the LangSmith tracing switch and project name |
+| 2 | `feat(graph)` | trace an investigation to LangSmith, fail-open |
+| 3 | `feat(graph)` | carry the trace id from state into the report |
+| 4 | `feat(graph)` | trace each investigation under an id minted up front |
+| 5 | `feat(graph)` | report the trace id and drain its queue before exit |
+| 6 | `feat(graph)` | give each model call its own span |
+| 7 | `feat(graph)` | name a span for the tool that ran in it |
+| 8 | `feat(graph)` | label the root run with the investigation's outcome |
+| 9 | `feat(api)` | build an investigations row from a finished report |
+| 10 | `feat(api)` | move an investigation through running to completed |
+| 11 | `feat(api)` | run the investigation the endpoint records |
+| 12 | `fix(api)` | a failed run records why instead of hanging on running |
+
+**Day 14's drafted `_change` fix landed first** (commit 0), as planned. `max - min` instead of
+the gap between the endpoints; the series carrying run 3's incident scored 0.0000 under the
+old reading.
+
+### Three things established by reading the installed libraries, not by guessing
+
+1. **`wrap_anthropic` is broken on the Bedrock client, and the fix is two lines.** It patches
+   `messages.create`, `messages.stream`, then reads `completions.create` with no guard -
+   `AsyncAnthropicBedrock` has no `.completions`, so it raises `AttributeError` *after*
+   half-patching. `traced_client` installs a stand-in that refuses to be called. Verified
+   against a real client and the real wrapper, not only against a fake.
+2. **Attaching the tracer as a callback is enough; no env var is needed.**
+   `langgraph/_internal/_runnable.py` searches the run manager's handlers for a
+   `LangChainTracer` and sets it as langsmith's parent run tree for the node's duration, so
+   `langsmith/utils.py:tracing_is_enabled` reports true because the call is "mid-trace". This
+   is what makes the LLM and tool spans nest under the node instead of orphaning.
+3. **`get_tracer_project` is `lru_cache(maxsize=1)` over the environment and defaults to the
+   project name `"default"`.** That is why tracing is attached rather than ambient: the
+   env-var route would have filed every trace under `default` unless the variable was set
+   before anything read it.
+
+### A live-call foot-gun, caught because the test suite made one
+
+Wiring the endpoint made `POST /investigate` run the real agent - and the existing tests in
+`test_investigations.py` post to it without overriding the investigator. The suite spent
+three seconds trying to reach Bedrock before failing. The gated DB test would have done the
+same against the live stack. **`api/tests/conftest.py` now turns `AGENT_AUTO_INVESTIGATE` off
+for every api test**, and the tests that want a run turn it on alongside the fake that makes
+it safe. The api suite is back to under a second with no network.
+
+### What is NOT done
+
+- **The live gate (D1) has not been run.** Nothing here has traced a real run or written a
+  real row.
+- **`docker-compose.yml` passes only `LANGSMITH_API_KEY`.** `LANGSMITH_TRACING` and
+  `LANGSMITH_PROJECT` are not passed to `agent-api`, so an in-container run would not trace.
+  **This must be added before D1.**
+- **The gated DB tests have never run.** `api/tests/test_integration_db.py` is the only
+  coverage of C2's real `UPDATE` statements; there is no offline test of the repository at
+  all (there never was - `aiosqlite` is not installed and the models use `JSONB`/`PgUUID`,
+  which SQLite cannot represent).
+- **README's Phase 4 box stays unchecked** - it reads "Observability & audit trail", and
+  `agent-api`'s own `/metrics` plus its Prometheus scrape target were out of scope.
+- **3.2's `timeout` gate is still open.** Untouched this session, by design: the trail records
+  what happened, right or wrong.
+
+### New tech debt, recorded in CLAUDE.md
+
+- **A retried webhook buys a second paid investigation** - no dedupe on `POST /investigate`.
+  Harmless until there is an Alertmanager; a blocker the moment there is.
+- **An investigation in flight at shutdown is lost** - `dispose_engine()` closes the pool and
+  the row stays `running`.
+- **LangSmith cannot price Bedrock model ids**, so its UI shows `$0`. `estimate_cost` is the
+  only cost number to trust.
+
+---
+
+## Previous Session
+
 **Date:** Day 14 (Phase 3 - closing the 3.2 `timeout` miss)
 
 **Status: the gate is still OPEN. Three live `timeout` runs, three wrong services.**
@@ -84,7 +178,7 @@ before Phase 5 scores anything.
 
 ---
 
-## Previous Session
+## Earlier Session (Day 13)
 
 **Date:** Day 13 (Phase 3 - sub-phase 3.3: write tools + the deterministic policy gate)
 
@@ -368,36 +462,38 @@ the second iteration.
 
 ## Next Session
 
-**1. Implement the drafted `_change` fix first. It is free, it is confirmed against live
-data, and no further live run is worth anything until it is in.** The current ranking scored
-run 3's most important series at exactly zero. Failing test, ready to paste into
-`agent/tests/test_metrics_parse.py`:
+**1. Two prerequisites first, both free.**
 
-```python
-def test_a_series_that_rose_and_fell_is_ranked_by_how_far_it_travelled():
-    """rate() series begin and end at zero around any bounded incident, so
-    ranking on the difference between the endpoints scores the busiest series
-    in the payload at exactly zero. Measured on the third live rehearsal: the
-    series carrying the incident scored 0.0000 and the summary's three slots
-    went to /health and /admin/fault."""
-    raw = _matrix(
-        ("quiet-throughout", [0.4, 0.4, 0.4, 0.4, 0.4]),
-        ("rose-and-fell", [0.0, 20.0, 22.0, 20.0, 0.0]),   # endpoints identical
-    )
-    series, _, _ = parse_range_response(raw)
-    text = summarise(
-        MetricsQuery(metric="http_requests_total", step_seconds=MATRIX_STEP_SECONDS),
-        series, window=_requested_window(raw),
-    )
+```bash
+# a) agent-api must be told to trace. Only LANGSMITH_API_KEY is passed today.
+#    Add to docker-compose.yml under agent-api's environment:
+#      - LANGSMITH_TRACING=${LANGSMITH_TRACING}
+#      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT}
 
-    assert text.index("rose-and-fell") < text.index("quiet-throughout")
+# b) run the gated DB tests - the only coverage of the repository's real UPDATEs
+set -a; . ./.env; set +a
+cd api && ../.venv/Scripts/python -m pytest tests/test_integration_db.py -q
 ```
 
-The implementation is one line in `agent/tools/metrics.py`: `_change` returns
-`series.max - series.min` instead of `abs(series.latest - series.points[0].value)`.
-Commit as `fix(tools): rank a series by how far it travelled, not where it ended`.
+**2. Then Phase 4's live gate (D1), roughly $0.10-0.30.** Same recipe as §4 below, but
+triggered with `curl -X POST http://localhost:8000/investigate` against `agent-api`
+**in-container** instead of `python -m agent.graph.run` — that is the path being proven, and
+the first time the endpoint has ever run the graph. It passes when all four hold:
 
-**2. Then re-run the gate — but decide first what it would take to pass it.** The honest
+1. A trace appears in the LangSmith project `sre-agent`, tagged `incident:<uuid>`.
+2. Its spans cover the five graph nodes, one LLM span per iteration (with prompt, tool
+   schemas and token usage), and one span per tool call named for the tool.
+3. The `investigations` row has `status='completed'`, a non-null `diagnosis`, `confidence`,
+   `steps`, `cost_usd`, `latency_ms`, and a `langsmith_trace_id` equal to the trace's run id;
+   `evidence` carries the transcript and the policy decision.
+4. `GET /investigations/{id}` returns that row.
+
+A useful dry run first, which costs nothing and proves the default path is unchanged:
+`python -m agent.graph.run --alert eval/scenarios/gateway-timeout.json --json` with tracing
+off — `trace_id` comes back null and the report is otherwise shaped exactly as Day 14's.
+
+**3. Only then re-open 3.2's `timeout` gate — but decide first what it would take to pass
+it.** The honest
 reading after three runs is that the remaining gap may not be closable with evidence and
 prompt levers alone:
 
@@ -417,7 +513,8 @@ prompt levers alone:
   derivable from the telemetry rather than from one trace call the model makes only
   sometimes.
 
-**3. The corrected run recipe** (one fault, ~6 min). Three corrections over Day 13's:
+**4. The corrected run recipe** (one fault, ~6 min). Three corrections over Day 13's. For
+Phase 4's gate, replace the `agent.graph.run` line with a `curl` to `agent-api`:
 
 ```bash
 set -a; . ./.env; set +a              # nothing in this repo loads .env
