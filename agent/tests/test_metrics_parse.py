@@ -291,6 +291,25 @@ def test_a_multi_series_summary_describes_the_biggest_movers_not_the_first():
     assert "fell from 5 to 0" in text
 
 
+def test_a_series_that_rose_and_fell_is_ranked_by_how_far_it_travelled():
+    """rate() series begin and end at zero around any bounded incident, so
+    ranking on the difference between the endpoints scores the busiest series
+    in the payload at exactly zero. Measured on the third live rehearsal: the
+    series carrying the incident scored 0.0000 and the summary's three slots
+    went to /health and /admin/fault."""
+    raw = _matrix(
+        ("quiet-throughout", [0.4, 0.4, 0.4, 0.4, 0.4]),
+        ("rose-and-fell", [0.0, 20.0, 22.0, 20.0, 0.0]),   # endpoints identical
+    )
+    series, _, _ = parse_range_response(raw)
+    text = summarise(
+        MetricsQuery(metric="http_requests_total", step_seconds=MATRIX_STEP_SECONDS),
+        series, window=_requested_window(raw),
+    )
+
+    assert text.index("rose-and-fell") < text.index("quiet-throughout")
+
+
 def test_a_multi_series_summary_describes_at_most_three():
     """Bounded: the summary is one line the model reads on every later turn."""
     raw = _matrix(*((f"svc-{i}", [float(i), 0.0]) for i in range(8)))

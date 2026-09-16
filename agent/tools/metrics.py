@@ -443,8 +443,14 @@ def _label_bits(series: MetricSeries) -> str:
 
 
 def _change(series: MetricSeries) -> float:
-    """How far the series travelled between its first and last surviving point."""
-    return abs(series.latest - series.points[0].value)
+    """How far the series travelled, at its widest.
+
+    Not the gap between the endpoints: a rate() series rises and falls back
+    around any bounded incident, so the endpoints are both near zero and the
+    series carrying the fault would score lower than idle background traffic.
+    min/max are computed before downsampling, so the peak survives thinning.
+    """
+    return series.max - series.min
 
 
 # A series present for only a sliver of the window was never reporting
