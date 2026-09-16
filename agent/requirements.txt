@@ -10,3 +10,8 @@ greenlet==3.2.4
 # keep using httpx, the model client uses httpx2.
 anthropic==1.0.0
 langgraph==1.2.11
+
+# The audit trail. Already present transitively via langgraph -> langchain-core,
+# pinned here because agent/graph/trace.py imports it directly - an unpinned
+# transitive dependency is one resolver away from moving under us.
+langsmith==0.11.1
