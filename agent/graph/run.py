@@ -25,7 +25,7 @@ import json
 from datetime import datetime, timezone
 
 from agent import config
-from agent.graph import investigate
+from agent.graph import investigate, trace
 from agent.graph.llm import call_model
 from agent.graph.render import summarise_alert
 from agent.graph.state import InvestigationReport
@@ -68,8 +68,16 @@ def render_report(report: InvestigationReport, reference_time: datetime) -> str:
         f"recommendation : {report.recommendation}",
         f"stopped because: {report.stop_reason}",
         f"status         : {report.status}",
-        "",
     ]
+    if report.trace_id:
+        # The id, not a URL: a LangSmith deep link needs an organisation id this
+        # process has no way to know, and a broken link is worse than an id to
+        # paste into the run list's filter.
+        lines.append(
+            f"trace          : {report.trace_id} "
+            f"(project '{config.LANGSMITH_PROJECT}')"
+        )
+    lines.append("")
     decision = report.policy_decision
     if decision is not None:
         lines += [
@@ -111,6 +119,7 @@ def main(
     call=call_model,
     run=run_tool,
     act_on=run_action,
+    flush=trace.flush,
 ) -> int:
     parser = argparse.ArgumentParser(
         description="Investigate one alert and print the report."
@@ -161,6 +170,12 @@ def main(
         report = asyncio.run(investigate(alert, call=call, run=run, act_on=act_on))
     finally:
         config.AGENT_ALLOW_WRITES = previous_writes
+        # Spans are posted from a background thread, so a process that returns
+        # as soon as the report is printed exits with the queue still full and
+        # loses the trace it just paid for. A no-op when nothing was traced,
+        # and it never raises - including on the run that failed, which is
+        # exactly the trace worth reading.
+        flush()
 
     if args.json:
         print(json.dumps(report.model_dump(mode="json"), indent=2, default=str))

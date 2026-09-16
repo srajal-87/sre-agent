@@ -9,17 +9,22 @@ no API key and no backends.
 """
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
 from agent import config
 from agent.graph.llm import ModelResponse
 from agent.graph.render import summarise_alert
-from agent.graph.run import main
+from agent.graph.run import main, render_report
+from agent.graph.state import InvestigationReport
 from agent.tools.base import ActionResult, ToolResult
 
 SCENARIOS = Path(__file__).resolve().parents[2] / "eval" / "scenarios"
+
+T0 = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
 
 QUERY = "promql for the gateway"
 
@@ -150,6 +155,56 @@ def test_a_reference_time_can_be_forced(alert_file, capsys):
     )
 
     assert "2026-08-25T12:00:00" in out
+
+
+# -- the audit trail --------------------------------------------------
+
+def test_a_traced_run_prints_the_id_and_the_project_to_look_it_up_in():
+    """No URL: a LangSmith deep link needs an organisation id this process has
+    no way to know, and a broken link is worse than an id to paste into the run
+    list's filter."""
+    trace_id = uuid4()
+    report = InvestigationReport(diagnosis="d", trace_id=trace_id)
+
+    out = render_report(report, T0)
+
+    assert str(trace_id) in out
+    assert config.LANGSMITH_PROJECT in out
+
+
+def test_an_untraced_run_says_nothing_about_a_trace():
+    """An empty "trace:" line would read as a trace that failed to record."""
+    out = render_report(InvestigationReport(diagnosis="d"), T0)
+
+    assert "trace" not in out.lower()
+
+
+def test_the_span_queue_is_drained_before_the_process_exits(alert_file, capsys):
+    """Spans are posted from a background thread, so a CLI that returns as soon
+    as the report is printed loses the trace it just paid for."""
+    drained = []
+    code = main(
+        ["--alert", str(alert_file)],
+        call=Model(), run=_runner, flush=lambda: drained.append(True),
+    )
+    capsys.readouterr()
+
+    assert code == 0
+    assert drained == [True]
+
+
+def test_the_queue_is_drained_even_when_the_investigation_failed(
+    alert_file, capsys
+):
+    """That run is exactly the one whose trace is worth reading."""
+    drained = []
+    main(
+        ["--alert", str(alert_file)],
+        call=Model(ok=False), run=_runner, flush=lambda: drained.append(True),
+    )
+    capsys.readouterr()
+
+    assert drained == [True]
 
 
 # -- failure ----------------------------------------------------------

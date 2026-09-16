@@ -123,6 +123,20 @@ def test_initial_state_carries_the_incident_identifiers():
     assert state["investigation_id"] == investigation_id
 
 
+def test_initial_state_carries_the_trace_id():
+    """Minted before the run, so the report can name its trace whatever the run
+    goes on to do - including failing."""
+    trace_id = uuid4()
+    state = initial_state(_alert(), trace_id=trace_id, now=_fixed_now)
+
+    assert state["trace_id"] == trace_id
+
+
+def test_an_untraced_run_has_no_trace_id():
+    """Tracing is off by default; the field is null, not a placeholder."""
+    assert initial_state(_alert(), now=_fixed_now)["trace_id"] is None
+
+
 def test_reference_time_is_the_alert_start_when_there_is_one():
     """Windows anchor to the incident, not to when the agent happened to run."""
     started = T0 - timedelta(hours=5)

@@ -126,8 +126,15 @@ def get_client():
     credentials - which is what keeps the unit tests offline. The region is
     passed explicitly rather than inferred; the bearer token is left to the SDK,
     which reads ``AWS_BEARER_TOKEN_BEDROCK`` from the environment.
+
+    The client is wrapped for tracing once, here, rather than per call: the
+    wrapper mutates it in place, so wrapping the cached client twice would nest
+    every call in a span inside a span. With tracing off this returns the very
+    same object, so nothing about the default path changes.
     """
     from anthropic import AsyncAnthropicBedrock
+
+    from agent.graph.trace import traced_client
 
     try:
         key = asyncio.get_running_loop()
@@ -135,7 +142,9 @@ def get_client():
         key = None
 
     if key not in _clients:
-        _clients[key] = AsyncAnthropicBedrock(aws_region=config.BEDROCK_REGION)
+        _clients[key] = traced_client(
+            AsyncAnthropicBedrock(aws_region=config.BEDROCK_REGION)
+        )
     return _clients[key]
 
 

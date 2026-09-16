@@ -13,8 +13,17 @@ nothing ever reaches END without one.
 import asyncio
 import json
 
+from uuid import UUID, uuid4
+
 from agent import config
-from agent.graph import RECURSION_LIMIT, build_graph, investigate
+from agent.graph import (
+    RECURSION_LIMIT,
+    build_graph,
+    investigate,
+    run_metadata,
+    run_options,
+    trace,
+)
 from agent.graph.hypothesis import UPDATE_HYPOTHESIS_NAME
 from agent.graph.llm import ModelResponse
 from agent.graph.state import AlertSummary, InvestigationReport
@@ -363,3 +372,112 @@ def test_a_failed_run_still_passes_through_the_gate():
 def test_the_recursion_limit_still_clears_the_extra_node():
     """Worst case rises by one super-step: act runs once, on the stop path."""
     assert RECURSION_LIMIT > config.MAX_ITERATIONS * 4 + 1
+
+
+# -- tracing ----------------------------------------------------------
+
+class TraceConfig:
+    """Stands in for trace.run_config, and records what it was asked to trace.
+
+    Returns no callbacks, so no span is ever posted: the seam exists precisely
+    so that the tracing path can be driven without a tracer.
+    """
+
+    def __init__(self, *, enabled: bool = True):
+        self.enabled = enabled
+        self.seen = []
+
+    def __call__(self, *, trace_id, incident_id=None, investigation_id=None, **kw):
+        self.seen.append(
+            {"trace_id": trace_id, "incident_id": incident_id,
+             "investigation_id": investigation_id}
+        )
+        return {"run_id": trace_id, "tags": [f"incident:{incident_id}"]} \
+            if self.enabled else {}
+
+
+def test_an_untraced_run_invokes_with_the_config_it_always_did():
+    """Byte-identical to the pre-tracing call. Observability that changes the
+    default path is not observability."""
+    assert run_options() == {"recursion_limit": RECURSION_LIMIT}
+
+
+def test_tracing_merges_in_without_displacing_the_recursion_ceiling():
+    """The ceiling is ours and stays ours: a stray key from the trace config
+    must not be able to change where the loop stops."""
+    options = run_options({"run_id": "u", "recursion_limit": 3})
+
+    assert options["run_id"] == "u"
+    assert options["recursion_limit"] == RECURSION_LIMIT
+
+
+def test_a_traced_run_reports_the_id_it_was_traced_under():
+    """The id is minted here and sent as run_id, so the root run's id is known
+    before the run starts - and is the same id that reaches Postgres."""
+    tracing = TraceConfig()
+    incident_id, investigation_id = uuid4(), uuid4()
+
+    report = asyncio.run(
+        investigate(
+            ALERT, call=_timeout_script(), run=Runner(),
+            incident_id=incident_id, investigation_id=investigation_id,
+            trace_config=tracing,
+        )
+    )
+
+    assert isinstance(report.trace_id, UUID)
+    assert report.trace_id == tracing.seen[0]["trace_id"]
+    assert tracing.seen[0]["incident_id"] == incident_id
+    assert tracing.seen[0]["investigation_id"] == investigation_id
+
+
+def test_the_root_run_is_labelled_with_what_the_investigation_concluded():
+    """LangSmith's run list shows names and metadata, not contents. Without
+    this, finding "the runs that blamed the wrong service" means opening every
+    trace by hand."""
+    report, _ = _investigate(_timeout_script())
+
+    labels = run_metadata(report)
+
+    assert labels["fault_type"] == "timeout"
+    assert labels["service"] == "api-gateway"
+    assert labels["confidence"] == 0.91
+    assert labels["recommendation"] == "escalate"
+    assert labels["cost_usd"] == 0.02
+    assert labels["stop_reason"] == "confident"
+
+
+def test_the_labels_are_scalars_a_run_list_can_filter_on():
+    """Metadata is for filtering, not for carrying the evidence blob."""
+    report, _ = _investigate(_timeout_script())
+
+    assert all(
+        isinstance(value, (str, int, float, bool, type(None)))
+        for value in run_metadata(report).values()
+    )
+
+
+def test_the_tool_callables_reach_the_executor_untouched_when_untraced():
+    """build_graph wraps run and act_on for tracing; with tracing off - the
+    default every offline test runs under - it must hand back the very objects
+    it was given, not equivalent ones."""
+    runner, actor = Runner(), ActionRunner()
+
+    graph = build_graph(run=runner, act_on=actor)
+
+    assert graph is not None
+    assert trace.traced_tool(runner) is runner
+    assert trace.traced_tool(actor) is actor
+
+
+def test_an_untraced_run_reports_no_trace_id():
+    """An id was minted either way; a report must not name a trace that was
+    never recorded."""
+    report = asyncio.run(
+        investigate(
+            ALERT, call=_timeout_script(), run=Runner(),
+            trace_config=TraceConfig(enabled=False),
+        )
+    )
+
+    assert report.trace_id is None

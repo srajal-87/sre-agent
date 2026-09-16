@@ -206,6 +206,32 @@ def test_the_identifiers_link_the_report_back_to_its_rows():
     assert report.investigation_id == state["investigation_id"]
 
 
+def test_the_trace_id_reaches_the_report():
+    """The one field that links the Postgres row to the LangSmith trace. It has
+    to survive the stop paths too, which is why it is copied here rather than
+    attached by whoever started the run."""
+    trace_id = uuid4()
+
+    report = _report(_state(trace_id=trace_id))
+
+    assert report.trace_id == trace_id
+
+
+def test_a_failed_run_still_reports_its_trace_id():
+    """A run that lost the API is exactly when the trace is worth reading."""
+    trace_id = uuid4()
+    state = _state(
+        trace_id=trace_id, hypothesis=None, status="failed",
+        stop_reason="llm_error", errors=["APIConnectionError"],
+    )
+
+    assert _report(state).trace_id == trace_id
+
+
+def test_an_untraced_run_reports_no_trace_id():
+    assert _report().trace_id is None
+
+
 # -- the bill and the clock -------------------------------------------
 
 def test_the_cost_and_call_count_are_reported():

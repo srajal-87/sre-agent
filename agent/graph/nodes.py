@@ -687,6 +687,7 @@ def finalize(state: InvestigationState, *, now=utc_now) -> dict:
         "report": InvestigationReport(
             incident_id=state["incident_id"],
             investigation_id=state["investigation_id"],
+            trace_id=state["trace_id"],
             diagnosis=_diagnosis(hypothesis),
             fault_type=hypothesis.fault_type if hypothesis else "unknown",
             service=hypothesis.service if hypothesis else None,

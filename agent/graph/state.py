@@ -267,6 +267,9 @@ class InvestigationReport(BaseModel):
 
     incident_id: UUID | None = None
     investigation_id: UUID | None = None
+    # The root run's id in LangSmith, and the one field that links this row to
+    # the trace of how it was reached. Null whenever tracing was off.
+    trace_id: UUID | None = None
 
     diagnosis: str
     fault_type: FaultType = "unknown"
@@ -308,6 +311,9 @@ class InvestigationState(TypedDict):
     # -- input: set once at START, never mutated --
     incident_id: UUID | None
     investigation_id: UUID | None
+    # Minted before ainvoke rather than read back afterwards, so it is knowable
+    # even for a run that never reports anything. None when untraced.
+    trace_id: UUID | None
     alert: AlertSummary
     reference_time: datetime
 
@@ -360,6 +366,7 @@ def initial_state(
     *,
     incident_id: UUID | None = None,
     investigation_id: UUID | None = None,
+    trace_id: UUID | None = None,
     now: Callable[[], datetime] = utc_now,
 ) -> InvestigationState:
     """Seed the state for one investigation.
@@ -373,6 +380,7 @@ def initial_state(
     return InvestigationState(
         incident_id=incident_id,
         investigation_id=investigation_id,
+        trace_id=trace_id,
         alert=alert,
         reference_time=alert.started_at or wall_clock,
         evidence=[],
