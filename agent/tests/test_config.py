@@ -14,10 +14,15 @@ _CONSTANTS = (
     "AGENT_ALLOW_WRITES",
     "ACTION_TIMEOUT_SECONDS",
     "AUTO_ACTION_CONFIDENCE",
+    "LANGSMITH_TRACING",
+    "LANGSMITH_PROJECT",
 )
 
+# Env var names, not constants: LANGCHAIN_TRACING_V2 is read but not exported,
+# and it has to be cleared or a developer's own shell would decide the default.
 _MANAGED = ("PROMETHEUS_URL", "COMPOSE_PROJECT", "AGENT_ALLOW_WRITES",
-            "ACTION_TIMEOUT_SECONDS", "AUTO_ACTION_CONFIDENCE")
+            "ACTION_TIMEOUT_SECONDS", "AUTO_ACTION_CONFIDENCE",
+            "LANGSMITH_TRACING", "LANGCHAIN_TRACING_V2", "LANGSMITH_PROJECT")
 
 
 def _reload(**env) -> SimpleNamespace:
@@ -119,6 +124,46 @@ def test_the_auto_action_bar_honours_the_env_override():
     """The 3.3 rehearsal exports 0.85; tuning it belongs in Phase 5."""
     cfg = _reload(AUTO_ACTION_CONFIDENCE="0.85")
     assert cfg.AUTO_ACTION_CONFIDENCE == 0.85
+
+
+# ── tracing ──────────────────────────────────────────────────────────
+
+def test_tracing_is_off_unless_asked_for():
+    """Tracing sends the whole transcript to a third party, so opting in is
+    explicit - and an offline test run must never try to reach the network."""
+    cfg = _reload()
+    assert cfg.LANGSMITH_TRACING is False
+
+
+def test_the_word_false_does_not_turn_tracing_on():
+    for value in ("false", "False", "0", "no", "off", ""):
+        assert _reload(LANGSMITH_TRACING=value).LANGSMITH_TRACING is False
+
+
+def test_the_usual_ways_of_saying_yes_turn_tracing_on():
+    for value in ("1", "true", "TRUE", "yes", "on"):
+        assert _reload(LANGSMITH_TRACING=value).LANGSMITH_TRACING is True
+
+
+def test_the_older_langchain_variable_still_turns_tracing_on():
+    """LANGCHAIN_TRACING_V2 is what most existing setups and docs export, and
+    it is the name already sitting in .env files; honouring it costs a line."""
+    assert _reload(LANGCHAIN_TRACING_V2="true").LANGSMITH_TRACING is True
+
+
+def test_the_current_name_wins_over_the_older_one():
+    cfg = _reload(LANGSMITH_TRACING="false", LANGCHAIN_TRACING_V2="true")
+    assert cfg.LANGSMITH_TRACING is False
+
+
+def test_the_project_defaults_to_the_repo_name():
+    cfg = _reload()
+    assert cfg.LANGSMITH_PROJECT == "sre-agent"
+
+
+def test_the_project_honours_the_env_override():
+    cfg = _reload(LANGSMITH_PROJECT="sre-agent-eval")
+    assert cfg.LANGSMITH_PROJECT == "sre-agent-eval"
 
 
 # ── service_url ──────────────────────────────────────────────────────

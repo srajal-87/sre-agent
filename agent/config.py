@@ -125,6 +125,19 @@ WALL_CLOCK_CAP_SECONDS = float(os.getenv("WALL_CLOCK_CAP_SECONDS", "120"))
 # Consecutive failed model calls before the run is abandoned. One is a blip.
 MAX_CONSECUTIVE_LLM_ERRORS = int(os.getenv("MAX_CONSECUTIVE_LLM_ERRORS", "2"))
 
+# -- the audit trail --------------------------------------------------
+
+# Whether a run is traced to LangSmith. Off by default: tracing ships the whole
+# transcript to a third party, and the offline test suite must never reach the
+# network. LANGCHAIN_TRACING_V2 is the older spelling of the same switch and is
+# what most existing setups export, so it is honoured as a fallback - the
+# current name wins when both are set.
+LANGSMITH_TRACING = _flag("LANGSMITH_TRACING", default=_flag("LANGCHAIN_TRACING_V2"))
+
+# The LangSmith project traces are filed under. Matching the repo name keeps a
+# fresh clone's traces somewhere findable without any configuration.
+LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "sre-agent") or "sre-agent"
+
 # -- the write side ---------------------------------------------------
 
 # The kill switch. Off means the policy gate still runs and still records its
