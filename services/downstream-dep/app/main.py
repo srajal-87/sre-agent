@@ -30,8 +30,10 @@ async def trace_id_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
         response.headers[TRACE_HEADER] = trace_id
-        # Don't record metrics for scrapes of the metrics endpoint itself.
-        if path != "/metrics":
+        # Don't record scrapes of the metrics endpoint itself, nor admin traffic:
+        # a fault-injection call lands only on the target service at exactly the
+        # fault-start instant, which would be an answer key in the agent's evidence.
+        if path != "/metrics" and not path.startswith("/admin/"):
             elapsed = time.perf_counter() - start
             metrics.http_request_duration_seconds.labels(
                 method=request.method, path=path

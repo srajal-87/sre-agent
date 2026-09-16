@@ -12,6 +12,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import json
 import os
 import random
@@ -134,6 +135,83 @@ def build_correlated_deploy(
     }
 
 
+def _as_datetime(value: str | datetime | None) -> datetime | None:
+    """A '...Z' ground-truth timestamp as a real datetime.
+
+    timestamptz wants a datetime, not a string - the same way seed_deploys
+    passes ``deployed_at``. ``fromisoformat`` only learned 'Z' in 3.11, so it is
+    normalised first.
+    """
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def incident_row(record: dict, payload: dict | None = None) -> dict:
+    """The column values for one injected fault.
+
+    A pure mapper, exactly like ``api/app/records.investigation_row``: it builds
+    a dict and hands it back, while the session and the transaction stay in the
+    writer below. That split is what makes the row's shape testable with nothing
+    to connect to - and this row has several constraints that only fail live.
+
+    ``payload`` is the scenario webhook the harness already loaded.
+    ``raw_payload`` is NOT NULL and every other row in that column holds an
+    Alertmanager webhook, so putting the injector's own record there would break
+    any consumer that reads it. ``source='injector'`` is the discriminator.
+    """
+    payload = payload or {}
+    return {
+        # A UUID, not the str the record holds: asyncpg rejects a str into a
+        # uuid column at execute time, i.e. in the middle of a paid run.
+        "id": uuid.UUID(record["incident_id"]),
+        "source": "injector",
+        # check (status in ('firing', 'resolved')) - a reverted fault is
+        # resolved, one still running is firing.
+        "status": "resolved" if record.get("ended_at") else "firing",
+        "receiver": payload.get("receiver"),
+        "group_key": payload.get("groupKey"),
+        "service": record["target"],
+        "common_labels": payload.get("commonLabels") or {},
+        "alert_count": len(payload.get("alerts") or []),
+        "raw_payload": payload,
+        "ground_truth_fault": record["fault"],
+        "ground_truth_target": record["target"],
+        "fault_started_at": _as_datetime(record.get("started_at")),
+        "fault_ended_at": _as_datetime(record.get("ended_at")),
+    }
+
+
+INCIDENT_UPSERT_SQL = (
+    "insert into incidents "
+    "(id, source, status, receiver, group_key, service, common_labels, "
+    " alert_count, raw_payload, ground_truth_fault, ground_truth_target, "
+    " fault_started_at, fault_ended_at) "
+    "values (:id, :source, :status, :receiver, :group_key, :service, "
+    "        cast(:common_labels as jsonb), :alert_count, "
+    "        cast(:raw_payload as jsonb), :ground_truth_fault, "
+    "        :ground_truth_target, :fault_started_at, :fault_ended_at) "
+    # Removes a whole class of "re-run it and it explodes", and leaves the door
+    # open to writing the row at enable time and completing it at revert.
+    "on conflict (id) do update set "
+    "  fault_ended_at = excluded.fault_ended_at, "
+    "  status = excluded.status"
+)
+
+
+def write_incident(row: dict) -> None:
+    """Upsert one ground-truth incident. The transaction lives here, not in the
+    mapper - same split as ``api/app/repository.py``."""
+    from injector.seed_deploys import _execute
+
+    encoded = {
+        **row,
+        "common_labels": json.dumps(row["common_labels"]),
+        "raw_payload": json.dumps(row["raw_payload"]),
+    }
+    asyncio.run(_execute(INCIDENT_UPSERT_SQL, [encoded]))
+
+
 def run(
     *,
     fault: str,
@@ -149,6 +227,9 @@ def run(
     deploy_writer: Callable[[list[dict]], None] | None = None,
     deploy_clock: Callable[[], datetime] = _utc_now_dt,
     rng: random.Random | None = None,
+    incident_id: str | None = None,
+    truth_writer: Callable[[dict], None] | None = None,
+    truth_payload: dict | None = None,
 ) -> dict | None:
     """Orchestrate an injection. Returns the ground-truth record, or None.
 
@@ -202,7 +283,10 @@ def run(
         ended_at = now()
 
     record = {
-        "incident_id": str(uuid.uuid4()),
+        # Minted here by default, but a caller can supply it: an investigation
+        # of this fault runs *during* the sleep above, and the investigations
+        # foreign key needs the id before this function has returned.
+        "incident_id": incident_id or str(uuid.uuid4()),
         "fault": fault,
         "target": target,
         "params": params,
@@ -212,7 +296,18 @@ def run(
         # must be able to score just as much as the positive case.
         "correlated_deploy": correlated_deploy,
         "deploy_error": deploy_error,
+        "truth_error": None,
     }
+
+    # Attempted BEFORE the JSONL is written, and swallowed the same way the
+    # deploy write is: injecting the fault is the point. The order matters -
+    # write the line first and this error would never be recorded anywhere.
+    if truth_writer is not None:
+        try:
+            truth_writer(incident_row(record, truth_payload))
+        except Exception as exc:  # noqa: BLE001
+            record["truth_error"] = str(exc)
+
     write_ground_truth(record, gt_path)
     return record
 
@@ -260,6 +355,10 @@ def main(argv: list[str] | None = None) -> None:
         now=_utc_now_iso,
         deploy=args.deploy,
         rng=random.Random(args.seed),
+        # Dual-written by default. A missing DATABASE_URL is not fatal: the
+        # attempt is swallowed into truth_error, and the JSONL still records
+        # everything, including that the row did not land.
+        truth_writer=write_incident,
     )
 
     if record is None:
@@ -279,6 +378,8 @@ def main(argv: list[str] | None = None) -> None:
             print(f"correlated deploy NOT written: {record['deploy_error']}")
         else:
             print("no correlated deploy (this fault has no deploy to blame)")
+        if record["truth_error"]:
+            print(f"ground truth NOT written to postgres: {record['truth_error']}")
         if record["ended_at"]:
             print(f"reverted after {args.duration}s")
         else:
